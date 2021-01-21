@@ -2,4 +2,4 @@
 # Author: javy liu
 #Date & Time: 2021-01-18 11:10:29
 #Description:
-ctags -R -f .git/tags --languages=ruby . $(bundle list --paths)
+ctags -R -f .git/tags --languages=ruby `pwd` $(bundle list --paths)

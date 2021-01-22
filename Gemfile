@@ -43,3 +43,5 @@ end
 
 gem "jwt", "~> 2.2"
 
+
+gem "jsonapi-serializer", "~> 2.1"

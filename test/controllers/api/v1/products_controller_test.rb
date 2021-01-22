@@ -33,7 +33,6 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference 'Product.count' do
       post api_v1_products_url, params: {product: {title: @product.title, price: @product.price, published: @product.published}}, as: :json
     end
-    Rails.logger.debug "禁止创建如果没有获取到token的话, 别人的token也可以用么？"
     assert_response :forbidden
   end
 

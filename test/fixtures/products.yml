@@ -1,13 +1,20 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  title: MyString
-  price: 9.99
+  title: Tv Plosmo Philopps
+  price: 3309.99
   published: false
   user: one
 
 two:
-  title: MyString
-  price: 9.99
+  title: azos zeenbok
+  price: 499.99
   published: false
   user: two
+
+another_tv:
+  title: Cheap TV
+  price: 99.00
+  published: false
+  user: two
+

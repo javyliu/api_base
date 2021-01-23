@@ -7,6 +7,26 @@ class ProductTest < ActiveSupport::TestCase
     assert_not product.valid?
   end
 
+  test 'should filter products by name' do
+    assert_equal 2, Product.filter_by_title('tv').count
+  end
+
+  test 'should filter products by name and sort them' do
+    ps = Product.filter_by_title('tv').sort
+    assert_equal [products(:another_tv), products(:one)],ps
+  end
+
+  test 'should filter products by  price and sort them' do
+    ps = Product.above_or_equal_to_price(200).sort
+    puts ps
+    assert_equal [products(:two), products(:one)], ps
+  end
+
+  test 'should sort product by most recent' do
+    products(:two).touch
+    assert_equal [products(:one), products(:another_tv), products(:two)], Product.recent.to_a
+  end
+
 
 
 

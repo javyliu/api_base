@@ -9,7 +9,7 @@ class Order < ApplicationRecord
 
   def build_placements_with_product_ids_and_quantities(product_ids_and_quantities)
     product_ids_and_quantities.each do |item|
-      placement = placements.build(product_id: item[:product_id])
+      placement = placements.build(product_id: item[:product_id], quantity: item[:quantity])
       yield placement if block_given?
     end
 

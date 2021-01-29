@@ -14,12 +14,12 @@ class Order < ApplicationRecord
       placement = placements.build(product_id: item[:product_id], quantity: item[:quantity])
       yield placement if block_given?
     end
-
   end
 
 
-  private
   def set_total!
-    self.total = products.map(&:price).sum
+    self.total = placements.map do |item|
+      item.quantity * item.product.price
+    end.sum
   end
 end

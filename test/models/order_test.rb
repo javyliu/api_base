@@ -10,13 +10,17 @@ class OrderTest < ActiveSupport::TestCase
 
 
   test 'should set total' do
-    order = Order.new user_id: @order.user_id
-    order.products << products(:one)
-    order.products << products(:two)
 
-    order.save
+    @order.placements =[
+      Placement.new(product_id: @product1.id, quantity: 2),
+      Placement.new(product_id: @product2.id, quantity: 2)
+    ]
 
-    assert_equal (@product1.price + @product2.price), order.total
+    @order.set_total!
+
+    expected_total = @product1.price * 2 + @product2.price * 2
+
+    assert_equal expected_total, @order.total
   end
 
   test 'build 2 placements for the order' do

@@ -7,6 +7,14 @@ class Order < ApplicationRecord
 
   before_validation :set_total!
 
+  def build_placements_with_product_ids_and_quantities(product_ids_and_quantities)
+    product_ids_and_quantities.each do |item|
+      placement = placements.build(product_id: item[:product_id])
+      yield placement if block_given?
+    end
+
+  end
+
 
   private
   def set_total!

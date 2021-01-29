@@ -2,5 +2,12 @@
 # Author: javy liu
 #Date & Time: 2021-01-25 15:45:15
 #Description:
-docker run -it --name pq_db --restart always -e TZ=PRC -e POSTGRES_USER='javy' -e POSTGRES_PASSWORD='123123' -e ALLOW_IP_RANGE=0.0.0.0/0 -v `pwd`/tmp/pq_data:/var/lib/postgresql/data -p 5432:5432 -d postgres
+count=`docker ps -a | grep pq_db|wc -l`
+if [[ 0 == $count ]]; then
+  echo 'create pq_db container and start it'
+  docker run -it --name pq_db --restart always -e TZ=PRC -e POSTGRES_USER='javy' -e POSTGRES_PASSWORD='123123' -e ALLOW_IP_RANGE=0.0.0.0/0 -v `pwd`/tmp/pq_data:/var/lib/postgresql/data -p 5432:5432 -d postgres
+else
+  echo 'start pq_db container'
+  docker start pq_db
+fi
 

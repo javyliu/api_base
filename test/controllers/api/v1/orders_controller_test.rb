@@ -8,7 +8,6 @@ class Api::V1::OrdersControllerTest < ActionDispatch::IntegrationTest
     @order_params = {
       order: {
         product_ids: [products(:one).id, products(:two).id],
-        total: 50
       }
     }
   end

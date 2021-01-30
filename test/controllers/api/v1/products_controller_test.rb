@@ -24,10 +24,7 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     json_response = JSON.parse(self.response.body, symbolize_names: true)
-    assert_not_nil json_response.dig(:links, :first)
-    assert_not_nil json_response.dig(:links, :last)
-    assert_not_nil json_response.dig(:links, :prev)
-    assert_not_nil json_response.dig(:links, :next)
+    assert_json_response_is_paginated json_response
   end
 
   test 'should create product' do

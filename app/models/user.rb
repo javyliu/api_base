@@ -3,7 +3,7 @@ class User < ApplicationRecord
   validates :password_digest, presence: true
   validates :email, format: { with: /@/ }
 
-  has_many :products, dependent: :destroy
+  has_many :products, dependent: :destroy, inverse_of: :user
 
   has_secure_password
 

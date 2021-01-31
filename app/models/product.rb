@@ -1,5 +1,5 @@
 class Product < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :products
 
   has_many :placements, dependent: :destroy
   has_many :orders, through: :placements

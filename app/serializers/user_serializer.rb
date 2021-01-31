@@ -1,5 +1,5 @@
 class UserSerializer
   include JSONAPI::Serializer
   attributes :email
-  has_many :products
+  has_many :products, lazy_load_data: true
 end

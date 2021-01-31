@@ -14,6 +14,7 @@ module Authenticable
   protected
 
   def check_login
+    Rails.logger.info "----current_user: #{current_user}"
     head :forbidden unless self.current_user
   end
 end

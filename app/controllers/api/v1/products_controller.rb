@@ -1,7 +1,7 @@
 class Api::V1::ProductsController < ApplicationController
   include Paginable
   before_action :set_product, only: %i[show update destroy]
-  before_action :check_login, only: %i[create]
+  before_action :check_login #, only: %i[create show]
   before_action :check_owner, only: %i[update destroy]
 
   def index

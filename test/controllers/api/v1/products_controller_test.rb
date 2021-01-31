@@ -8,7 +8,7 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
 
 
   test "should show product" do
-    get api_v1_product_url(@product), as: :json
+    get api_v1_product_url(@product),headers: {Authorization: JsonWebToken.encode(user_id: @product.user_id)}, as: :json
     assert_response :success
 
     json_response = JSON.parse(self.response.body, symbolize_names: true)
@@ -20,7 +20,8 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
 
 
   test 'should show products' do
-    get api_v1_products_url(), as: :json
+    get api_v1_products_url(),headers: {Authorization: JsonWebToken.encode(user_id: @product.user_id)}, as: :json
+
     assert_response :success
 
     json_response = JSON.parse(self.response.body, symbolize_names: true)

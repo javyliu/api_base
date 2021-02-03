@@ -1,0 +1,17 @@
+version: "3.3"
+services:
+  web:
+    image: api_base
+    command: sh -c "echo '----------start-------------------' && rm -f tmp/pids/server.pid && bundle exec rails s -p 3001 -b '0.0.0.0'"
+    volumes:
+      - ./log:/app/log
+      - ./storage:/app/storage
+      - ./tmp:/app/tmp
+      - ./config/master.key:/app/config/master.key
+    ports:
+      - "3001:3001"
+    environment:
+      RAILS_MAX_THREADS: 5
+      EDITOR: vi
+
+

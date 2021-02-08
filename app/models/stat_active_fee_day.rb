@@ -15,7 +15,11 @@ class StatActiveFeeDay < PipstatRecord
     p "------old_gids: #{old_gids}"
     old_arr = old_gids.presence && StatAccountDay.select("gameswitch as gamecode, sum(activeuser) activenum").by_gameid(old_gids).by_statdate(sdate,edate).group(:gamecode).to_a || []
 
-    (arr_objs + old_arr).map {|item| [item.gamecode, item.feenum/days_count, item.activenum/days_count, item.activenum == 0 ? 0 : (item.feenum*100.0 / item.activenum).truncate(2)]}
+    result = (arr_objs + old_arr).group_by{|item| item.gamecode}
+    result.each do |gid, vals|
+      item = vals.first
+      result[gid] = {feenum: item.feenum/days_count,activenum: item.activenum/days_count, avg: item.activenum == 0 ? 0 : (item.feenum*100.0 / item.activenum).truncate(2) }
+    end
   end
 
 

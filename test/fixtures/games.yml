@@ -1,0 +1,50 @@
+
+one:
+  gameId: 1
+  gameName: "明珠幻想"
+  gameLogFormat: "itimes"
+  gameItemConfig: "item_itimes.xml"
+  gameImoneyRate: "360.00"
+  gameMinver: "2.0.1"
+  gameAccFormat: "new"
+  gameCodes:
+   "'itimes_01','itimes1_01','itimes1_02','itimes_02','itimes1_03','itimes_03','itimes1_04','itimes_04','itimes1_05','itimes_05','itimes1_06','itimes_06','itimes1_07','itimes_07','itimes_08','itimes1_08','itimes1_demo2','itimes_demo2','itimes_09','itimes1_09','itimes1_10','itimes_10','itimes1_demo','itimes_demo','itimes1_11','itimes_11','itimes1_12','itimes_12','itimes_13','itimes1_13','itimes_14','itimes1_14','itimes1_15','itimes_15','itimes_16','itimes1_16','itimes1_17','itimes_17','@shaft'"
+  gameAttrsCount: 10
+  gameAttrsRate: "0.1"
+  gameHpmpCount: 5
+  gameHpmpRate: "1.2"
+  gameState: 1
+  channelShow: 1
+  systemId: ",1,"
+  showOrder: 2015
+  registerOnLineTime: 240
+  gamemodel: 0
+  registerLevel: 0
+  billing_gamecode: nil
+  stopservertime: Wed, 01 Jan 3000
+
+two:
+  gameId: 8
+  gameName: "武林OL"
+  gameLogFormat: "itimes"
+  gameItemConfig: "item_5025.xml"
+  gameImoneyRate: "360.00"
+  gameMinver: "2.0"
+  gameAccFormat: "new"
+  gameCodes:
+   "'wulin25_01','wulin25_02','wulin25_03','wulin25_04','wulin25_05','wulin25_06','wulin25_07','wulin25_08','wulin25_09','wulin25_10','wulin25_11','wulin25_12','wulin_apple_01','wulin25_13'"
+  gameAttrsCount: 10
+  gameAttrsRate: "0.1"
+  gameHpmpCount: 5
+  gameHpmpRate: "1.2"
+  gameState: 1
+  channelShow: 1
+  systemId: ",1,"
+  showOrder: 2010
+  registerOnLineTime: 240
+  gamemodel: 0
+  registerLevel: 5
+  billing_gamecode: nil
+  stopservertime: Wed, 01 Jan 3000
+
+

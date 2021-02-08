@@ -16,11 +16,11 @@ class StatUserDay < PipstatRecord
   def self.get_max_and_avg_online(sdate,edate,gids)
     days_count = (Date.parse(edate) - Date.parse(sdate)).to_i+1
     obj_hash = select("gameswitch, highonlinenum,pointtimeonline").by_gameid(gids).by_statdate(sdate,edate).order(:statdate, :gameswitch).group_by{|obj| obj.gameswitch}
-    obj_hash.map do |gid, vals|
-      vals.reduce([gid,0,0]){|result, item| result[1]+= item.highonlinenum; result[2] += item.cal_average; result}
-    end.each do |item|
-      item[1] /= days_count
-      item[2] /= days_count
+    obj_hash.each do |gid, vals|
+      obj_hash[gid] = vals.reduce({highonlinenum: 0,avgonlinenum: 0}){|result, item| result[:highonlinenum]+= item.highonlinenum; result[:avgonlinenum] += item.cal_average; result}
+    end.each do |_,v|
+      v[:highonlinenum] /= days_count
+      v[:avgonlinenum] /= days_count
     end
   end
 

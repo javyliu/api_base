@@ -6,7 +6,8 @@ Rails.application.routes.draw do
       resources :tokens, only: [:create]
       resources :products
       resources :orders, only: [:index,:show, :create]
-      resources :reports
+      resources :reports, only: [:index]
+      resources :games, only: [:index]
     end
   end
 end

@@ -25,8 +25,17 @@ default: &default
   password: <%= Rails.application.credentials.dev_db_pwd %>
 
 development:
-  <<: *default
-  database: api_base_development
+  primary:
+    <<: *default
+    database: api_base_development
+
+  metedata:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_metedata_url_dev %>
+
+  pipstat:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_pipstat_url_dev %>
 
   # The specified database role being used to connect to postgres.
   # To create additional roles in postgres see `$ createuser --help`.
@@ -59,8 +68,16 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  <<: *default
-  database: api_base_test
+  primary:
+    <<: *default
+    database: api_base_test
+  metedata:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_metedata_url_test %>
+
+  pipstat:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_pipstat_url_test %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -83,6 +100,29 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  <<: *default
-  database: api_base_production
-  password: <%= Rails.application.credentials.pro_db_pwd %>
+  primary:
+    <<: *default
+    database: api_base_production
+    password: <%= Rails.application.credentials.pro_db_pwd %>
+
+  workflow:
+    adapter: mysql2
+    encoding: utf8
+    username: attendance
+    database: attendance
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    password: <%= Rails.application.credentials.workflow_db_pwd %>
+    port: 3306
+    host: 192.168.0.189
+
+  metedata:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_metedata_url %>
+
+  pipstat:
+    pool: 5
+    url: <%= Rails.application.credentials.data_platform_pipstat_url %>
+
+  redmine:
+    pool: 5
+    url: <%= Rails.application.credentials.redmine_db_url  %>

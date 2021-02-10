@@ -13,5 +13,9 @@ class Game < MetedataRecord
     where("gameid > 0").by_stop_server_time(sdate).ids
   end
 
+  def self.partition_map
+    gs = Game.select("gameId,gameName,left(gameCodes,10) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|_(?=\d+).*|','/,'')}.group_by {|it| it.gameCodes }
 
+
+  end
 end

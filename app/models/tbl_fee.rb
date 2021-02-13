@@ -5,9 +5,10 @@ class TblFee < AccountRecord
 
 
 
+  #sanguo_test 算作sanguo
   def self.hour_data(stime,etime)
     result = select('`partition`, right(left(finishtime,13),2) hour, money').where('money>?', 0).by_finished_time(stime,etime).each do |item|
-      item.partition.gsub!(/@|_\d+$/,"")
+      item.partition.gsub!(/@|_\d+$|_test/,"")
     end.group_by{|it| it.partition }
     #{sanguo: {'00': [],'01': []}}
     result.each do |k,v|

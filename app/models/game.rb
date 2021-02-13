@@ -14,7 +14,10 @@ class Game < MetedataRecord
   end
 
   def self.partition_map
-    gs = Game.select("gameId,gameName,left(gameCodes,10) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|_(?=\d+).*|','/,'')}.group_by {|it| it.gameCodes }
+    gs = Game.select("gameId,gameName,left(gameCodes,14) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|(?:_\d).*|','.*/,'')}.group_by {|it| it.gameCodes }
+    gs.each do |k,v|
+      gs[k] = v.first
+    end
 
 
   end

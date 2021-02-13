@@ -6,7 +6,10 @@ Rails.application.routes.draw do
       resources :tokens, only: [:create]
       resources :products
       resources :orders, only: [:index,:show, :create]
-      resources :reports, only: [:index]
+      resources :reports, only: [:index] do
+        get :real_time_data, on: :collection
+
+      end
       resources :games, only: [:index]
     end
   end

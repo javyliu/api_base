@@ -17,7 +17,18 @@ Rails.application.configure do
   # Enable/disable caching. By default caching is disabled.
   # Run rails dev:cache to toggle caching.
   if Rails.root.join('tmp', 'caching-dev.txt').exist?
-    config.cache_store = :memory_store
+    cache_servers = Rails.application.credentials.cache_redis_url
+    config.cache_store = :redis_cache_store, {url: cache_servers,
+                                              connect_timeout: 30,
+                                              read_timeout: 0.2,
+                                              write_timeout: 0.2,
+                                              error_handler: -> (method, returning, exception ){
+                                                logger '000000000000000----'
+                                                log.info method.inspect
+                                                log.info exception.inspect
+                                              }
+    }
+
     config.public_file_server.headers = {
       'Cache-Control' => "public, max-age=#{2.days.to_i}"
     }

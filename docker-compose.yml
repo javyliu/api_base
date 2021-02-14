@@ -1,17 +1,45 @@
 version: "3.3"
 services:
-  web:
-    image: api_base
-    command: sh -c "echo '----------start-------------------' && rm -f tmp/pids/server.pid && bundle exec rails s -p 3001 -b '0.0.0.0'"
+  pq_db:
+    image: postgres
     volumes:
-      - ./log:/app/log
-      - ./storage:/app/storage
-      - ./tmp:/app/tmp
-      - ./config/master.key:/app/config/master.key
-    ports:
-      - "3001:3001"
+      - ./tmp/pq_data:/var/lib/postgresql/data
     environment:
-      RAILS_MAX_THREADS: 5
-      EDITOR: vi
+      - POSTGRES_USER=javy
+      - POSTGRES_PASSWORD=123123
+      - TZ=PRC
+      - ALLOW_IP_RANGE=0.0.0.0/0
+    ports:
+      - "5432:5432"
+
+  mysql:
+    image: mysql:5.7.28
+    volumes:
+      - ./tmp/mysql_data:/var/lib/mysql
+    command: [
+        #使用 command 可以覆盖容器启动后默认执行的命令
+        '--character-set-server=utf8mb4', #设置数据库表的数据集
+        '--collation-server=utf8mb4_unicode_ci', #设置数据库表的数据集
+    ]
+    environment:
+      - MYSQL_ROOT_PASSWORD=123123
+      - ALLOW_IP_RANGE=0.0.0.0/0
+      - TZ=Asia/Shanghai
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:5.0.7
+    #command: redis-server /etc/conf/redis.conf
+    volumes:
+      - db_redis:/data
+        #- ./conf/redis.conf:/etc/conf/redis.conf
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=123123
+
+volumes:
+  db_redis:
 
 

@@ -30,14 +30,15 @@ services:
 
   redis:
     image: redis:5.0.7
-    #command: redis-server /etc/conf/redis.conf
+    command: redis-server --requirepass 123123 --appendonly yes
     volumes:
       - db_redis:/data
         #- ./conf/redis.conf:/etc/conf/redis.conf
     ports:
       - "6379:6379"
     environment:
-      - REDIS_PASSWORD=123123
+      #this is not usage
+      - PASSWORD=123123
 
 volumes:
   db_redis:

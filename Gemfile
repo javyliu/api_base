@@ -53,3 +53,7 @@ gem "bullet", "~> 6.1", :group => :development
 gem "rack-cors", "~> 1.1"
 
 gem "mysql2", "~> 0.5.3"
+
+gem "redis", "~> 4.2"
+
+gem "hiredis", "~> 0.6.3"

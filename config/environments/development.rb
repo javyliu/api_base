@@ -19,14 +19,23 @@ Rails.application.configure do
   if Rails.root.join('tmp', 'caching-dev.txt').exist?
     cache_servers = Rails.application.credentials.cache_redis_url
     config.cache_store = :redis_cache_store, {url: cache_servers,
-                                              connect_timeout: 30,
-                                              read_timeout: 0.2,
-                                              write_timeout: 0.2,
-                                              error_handler: -> (method, returning, exception ){
-                                                logger '000000000000000----'
-                                                log.info method.inspect
-                                                log.info exception.inspect
-                                              }
+                                              connect_timeout:    30,  # Defaults to 20 seconds
+                                              read_timeout:       0.2, # Defaults to 1 second
+                                              write_timeout:      0.2, # Defaults to 1 second
+                                              reconnect_attempts: 1,   # Defaults to 0
+
+                                              #error_handler: -> (method:, returning:, exception:) {
+                                              #  # Report errors to Sentry as warnings
+                                              #  logger '000000000000000----'
+                                              #  log.info method.inspect
+                                              #  log.info exception.inspect
+                                              #}
+
+                                              #error_handler: -> (method, returning, exception ){
+                                              #  logger '000000000000000----'
+                                              #  log.info method.inspect
+                                              #  log.info exception.inspect
+                                              #}
     }
 
     config.public_file_server.headers = {

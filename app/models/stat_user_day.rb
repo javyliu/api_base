@@ -13,14 +13,23 @@ class StatUserDay < PipstatRecord
   #返回一个数据，每个游戏返回一个StatUserDay对像
   #用avgonlinenum 来存储计算后的pointtimeonline 时均值
   #return: [gamecode, highonlinenum, avgonlinenum]
-  def self.get_max_and_avg_online(sdate,edate,gids)
-    days_count = (Date.parse(edate) - Date.parse(sdate)).to_i+1
-    obj_hash = select("gameswitch, highonlinenum,pointtimeonline").by_gameid(gids).by_statdate(sdate,edate).order(:statdate, :gameswitch).group_by{|obj| obj.gameswitch}
-    obj_hash.each do |gid, vals|
-      obj_hash[gid] = vals.reduce({highonlinenum: 0,avgonlinenum: 0}){|result, item| result[:highonlinenum]+= item.highonlinenum; result[:avgonlinenum] += item.cal_average; result}
-    end.each do |_,v|
-      v[:highonlinenum] /= days_count
-      v[:avgonlinenum] /= days_count
+  def self.get_max_and_avg_online(sdate,edate,gids, by_date: false)
+    selects = "statdate,gameswitch, highonlinenum,pointtimeonline"
+    if by_date
+      groups = :statdate
+    else
+      groups = :gameswitch
+    end
+
+    obj_hash = select(selects).by_gameid(gids).by_statdate(sdate,edate).order(:statdate, :gameswitch).group_by{|obj| obj.send(groups)}
+    obj_hash.each do |key, vals|
+      obj_hash[key] = vals.reduce({highonlinenum: 0,avgonlinenum: 0}){|result, item| result[:highonlinenum]+= item.highonlinenum; result[:avgonlinenum] += item.cal_average; result}
+
+      if !by_date
+        days_count = (Date.parse(edate) - Date.parse(sdate)).to_i+1
+        obj_hash[key][:highonlinenum] /= days_count
+        obj_hash[key][:avgonlinenum] /= days_count
+      end
     end
   end
 

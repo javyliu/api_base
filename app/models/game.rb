@@ -10,7 +10,7 @@ class Game < MetedataRecord
   scope :by_stop_server_time, lambda {|sdate| where('stopservertime >= ? ', sdate).order(:showorder)}
 
   def self.all_gids(sdate)
-    where("gameid > 0").by_stop_server_time(sdate).ids
+    by_stop_server_time(sdate).ids
   end
 
   def self.partition_map(group_att: :gameCodes)
@@ -18,7 +18,5 @@ class Game < MetedataRecord
     gs.each do |k,v|
       gs[k] = v.first
     end
-
-
   end
 end

@@ -13,8 +13,8 @@ class Game < MetedataRecord
     where("gameid > 0").by_stop_server_time(sdate).ids
   end
 
-  def self.partition_map
-    gs = Game.select("gameId,gameName,left(gameCodes,14) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|(?:_\d).*|','.*/,'')}.group_by {|it| it.gameCodes }
+  def self.partition_map(group_att: :gameCodes)
+    gs = Game.select("gameId,gameName,left(gameCodes,14) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|(?:_\d).*|','.*/,'')}.group_by {|it| it.send(group_att) }
     gs.each do |k,v|
       gs[k] = v.first
     end

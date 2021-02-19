@@ -7,8 +7,12 @@ Rails.application.routes.draw do
       resources :products
       resources :orders, only: [:index,:show, :create]
       resources :reports, only: [:index, :show] do
-        get :real_time_data, on: :collection
-
+        collection do
+          get :real_time_data
+        end
+        member do
+          get :real_hour_data
+        end
       end
       resources :games, only: [:index]
     end

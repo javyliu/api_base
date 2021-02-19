@@ -3,6 +3,11 @@ class StatIncome3Day < PipstatRecord
 
   scope :by_statdate, lambda { |sdate, edate| where(statdate: sdate..edate) }
   scope :by_gameid, lambda { |gids| where(gamecode: gids) }
+
+  InComeTpl = {"amount":0,"amount2":0,"highonlinenum":0,"avgonlinenum":0,"reguser":0}
+  TimeTpl = {'00':0, '01':0, '02':0, '03':0, '04':0, '05':0, '06':0, '07':0, '08':0, '09':0, '10':0, '11':0, '12':0, '13':0, '14':0, '15':0, '16':0, '17':0, '18':0, '19':0, '20':0, '21':0, '22':0, '23':0 }.stringify_keys
+
+
   #收入分成前、后 amount1:分成后按合作方,amount: 分成前,amount:分成前
   #如果by_date为真，表示日期进行分组
   #select statdate, gamecode, sum(amount) as amount, sum(amount2) as amount2 from stat_income3_day where gamecode in ( 124,113) and statdate >= '2020-01-01' and statdate <= '2020-01-02' group by statdate, gamecode

@@ -17,6 +17,6 @@
 #select time,num from tbl_realtimeonline where gameid=10 and time>='2021-02-19 00:00:00' and time<='2021-02-19 23:59:59'
 
 class TblRealtimeonline < PipstatRecord
-  set table_name='tbl_realtimeonline'
+  self.table_name='tbl_realtimeonline'
   scope :by_date,lambda { |sdate, edate| where("time >= ? and time < ?", sdate,edate) }
 end

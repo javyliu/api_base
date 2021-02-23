@@ -7,5 +7,12 @@ class StatAccountDay < PipstatRecord
 
   #取得游戏每天去重后活跃数,表作了汇总，每个游戏每天一条数据
   #select statdate, gameswitch, activeuser from stat_accountdata_day where statdate >= '2020-01-01' and statdate <= '2020-01-02' and gameswitch in ( 124,113,108,130,129,128,127,123,97,126,73,62,80,78,57,34,25,10,8,1) order by statdate asc, gameswitch asc;
+  def self.registed_users(sdate,edate,gid,group_att: :statdate)
+    result = select('statdate, sum(reguser) as reguser').by_gameid(gid).by_statdate(sdate,edate).group(:statdate).group_by(&:statdate)
+    result.each do |key,vals|
+      result[key] = vals.first.attributes.slice('statdate', 'reguser')
+    end
+  end
+
 
 end

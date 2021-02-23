@@ -11,7 +11,7 @@ Rails.application.routes.draw do
           get :real_time_data
         end
         member do
-          get :real_hour_data
+          get :time_data
         end
       end
       resources :games, only: [:index]

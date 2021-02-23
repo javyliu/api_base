@@ -2,6 +2,7 @@
 #数据库表tbl_game_info里字段channelshow=0表示海外游戏，channelshow=1表示自营
 #取得开始日期与该游戏是否已经停止运营时间对比
 #1.如果该游戏的停止运营时间小于开始时间，则显示；反之不显示
+#channelshow: 0: 表示海外游戏 1:表示自营
 class Game < MetedataRecord
   self.table_name='tbl_game_info'
   self.primary_key='gameId'

@@ -25,18 +25,14 @@ class PipAccountDay < PipstatRecord
       #老版本游戏在pip_account_day中没有数据
       players2 = old_gids.presence && StatAccountDay.select("gameswitch as gamecode, sum(reguser) as reguser").by_gameid(old_gids).by_statdate(sdate,edate).group(:gamecode).to_a || []
       result += players2
-
     end
-
 
     result = result.group_by{ |obj| obj.send(groups) }
 
     result.each do |key, vals|
       result[key] = vals.first.attributes.except('id')
     end
-
     result
-
   end
 
 

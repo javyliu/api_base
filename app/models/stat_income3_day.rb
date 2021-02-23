@@ -4,7 +4,7 @@ class StatIncome3Day < PipstatRecord
   scope :by_statdate, lambda { |sdate, edate| where(statdate: sdate..edate) }
   scope :by_gameid, lambda { |gids| where(gamecode: gids) }
 
-  InComeTpl = {"amount":0,"amount2":0,"highonlinenum":0,"avgonlinenum":0,"reguser":0}
+  InComeTpl = {'amount':0,'amount2':0,'highonlinenum':0,'avgonlinenum':0,'new_user':0}
   TimeTpl = {'00':0, '01':0, '02':0, '03':0, '04':0, '05':0, '06':0, '07':0, '08':0, '09':0, '10':0, '11':0, '12':0, '13':0, '14':0, '15':0, '16':0, '17':0, '18':0, '19':0, '20':0, '21':0, '22':0, '23':0 }.stringify_keys
 
 
@@ -14,10 +14,10 @@ class StatIncome3Day < PipstatRecord
   def self.get_income(sdate,edate,gids, by_date: false)
     #按statdate进行分组进行查询
     if by_date
-      selects = "statdate,sum(amount) as amount, sum(amount2) as amount2"
+      selects = 'statdate,sum(amount) as amount, sum(amount2) as amount2'
       groups = :statdate
     else
-      selects = "gamecode, sum(amount) as amount, sum(amount2) as amount2"
+      selects = 'gamecode, sum(amount) as amount, sum(amount2) as amount2'
       groups = :gamecode
     end
     result = select(selects).by_gameid(gids).by_statdate(sdate,edate).group(groups)
@@ -33,9 +33,9 @@ class StatIncome3Day < PipstatRecord
 
     #仅一个游戏时返回按天分组数据,否则按游戏分组
     if by_date
-      result.each {|key,vals| result[key] = vals.first.attributes.except("id")}
+      result.each {|key,vals| result[key] = vals.first.attributes.except('id')}
     else
-      result.each{|gid, vals| result[gid] = vals.first.attributes.except("id")}
+      result.each{|gid, vals| result[gid] = vals.first.attributes.except('id')}
     end
   end
 end

@@ -88,4 +88,6 @@ Rails.application.configure do
     Bullet.enable = true
     Bullet.rails_logger = true
   end
+
+  config.hosts << '*.example.com'
 end

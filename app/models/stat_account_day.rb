@@ -14,5 +14,15 @@ class StatAccountDay < PipstatRecord
     end
   end
 
+  #渠道新增注册数
+  #return: {'2021-02-01': [['CCCCWIP', 1,1]...]
+  def self.channel_registed_users(sdate,edate,gid)
+    result = select('statdate, version').by_gameid(gid).by_statdate(sdate,edate).group_by(&:statdate)
+    result = result.each do |key,vals|
+      item = vals.first
+      result[key] = item.version.scan(/-(\w+)%(\d+)%(\d+)/)
+    end
+  end
+
 
 end

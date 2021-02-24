@@ -6,15 +6,19 @@ Rails.application.routes.draw do
       resources :tokens, only: [:create]
       resources :products
       resources :orders, only: [:index,:show, :create]
-      resources :reports, only: [:index, :show] do
+      resources :reports, only: [:index] do
         collection do
           get :real_time_data
         end
+      end
+      resources :games, only: [:index, :show]  do
         member do
           get :time_data
+          get :summary
         end
       end
-      resources :games, only: [:index]
+
+
     end
   end
 end

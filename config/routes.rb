@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       resources :reports, only: [:index] do
         collection do
           get :real_time_data
+          get :accounts_gt_money
         end
       end
       resources :games, only: [:index, :show]  do

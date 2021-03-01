@@ -73,6 +73,8 @@ GEM
     erubi (1.10.0)
     faker (2.16.0)
       i18n (>= 1.6, < 2)
+    fast_excel (0.4.0)
+      ffi (> 1.9, < 2)
     ffi (1.14.2)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
@@ -182,6 +184,7 @@ DEPENDENCIES
   bullet (~> 6.1)
   byebug
   faker (~> 2.15)
+  fast_excel (~> 0.4.0)
   hiredis (~> 0.6.3)
   jsonapi-serializer (~> 2.1)
   jwt (~> 2.2)

@@ -57,3 +57,5 @@ gem "mysql2", "~> 0.5.3"
 gem "redis", "~> 4.2"
 
 gem "hiredis", "~> 0.6.3"
+
+gem "fast_excel", "~> 0.4.0"

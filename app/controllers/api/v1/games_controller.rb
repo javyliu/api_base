@@ -76,9 +76,35 @@ class Api::V1::GamesController < ApplicationController
     data3 = StatAccountDay.registed_users(params[:sdate], params[:edate], params[:id])
 
     data = data1.deep_merge(data2).deep_merge(data3)
-
-
     render json: data.values
+  end
+
+  #渠道玩家走势
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为“注册”
+  #cate: 1：新增注册数 2：新增激活数 3：新增账户数
+  def channel_users
+    coop_type = params[:coop_type]
+    cate = params[:cate]
+    gid = params[:id]
+    sdate = params[:sdate]
+    edate = params[:edate]
+
+    #渠道号对应名称
+    channel_map = ChannelCodeInfo.channel_map(gid)
+    channel_map = channel_map.where(balance_wap: coop_type) if coop_type.present?
+    channel_map = channel_map.group_by(&:code)
+
+    case cate
+    when 1
+
+    when 2
+
+    when 3
+
+    end
+
 
   end
+
+
 end

@@ -50,7 +50,7 @@ class Api::V1::ReportsController < ApplicationController
 
     raise "请输入正确的参数" unless sdate.present? && edate_1.present? && money.present?
 
-    name = "#{sdate}~#{edate_1}充值返利名单"
+    file_name = "#{sdate}~#{edate_1}充值返利名单"
 
 
     edate = Date.parse(edate_1).next_day.to_s(:db)
@@ -66,7 +66,9 @@ class Api::V1::ReportsController < ApplicationController
 
 
     workbook = FastExcel.open(constant_memory: true)
-    worksheet = workbook.add_worksheet(name)
+    worksheet = workbook.add_worksheet(file_name)
+    #invalid
+    #worksheet.auto_width = true
 
     worksheet.write_row(0,'游戏名称,账号ID,账户名,角色ID,角色名,角色所在分区,活动期间充值金额'.split(','), workbook.bold_format)
 
@@ -99,7 +101,7 @@ class Api::V1::ReportsController < ApplicationController
 
     #worksheet.insert_chart(1,7, chart)
 
-    send_data(workbook.read_string, filename: "#{name}.xlsx")
+    send_data(workbook.read_string, filename: "#{file_name}.xlsx")
   end
 
 end

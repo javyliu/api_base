@@ -16,6 +16,7 @@ Rails.application.routes.draw do
         member do
           get :time_data
           get :summary
+          get :channel_users
         end
       end
 

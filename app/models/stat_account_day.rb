@@ -20,7 +20,7 @@ class StatAccountDay < PipstatRecord
     result = select('statdate, version').by_gameid(gid).by_statdate(sdate,edate).group_by(&:statdate)
     result = result.each do |key,vals|
       item = vals.first
-      result[key] = item.version.scan(/-(\w+)%\d+%(\d+)/)
+      result[key] = item.version.scan(/-(\w+)[%\d+]+%(\d+)\b/).reduce(Hash.new(0)){|rt, it| rt[it[0]]+= it[1].to_i; rt }
     end
   end
 

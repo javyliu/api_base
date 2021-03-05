@@ -146,5 +146,79 @@ class Api::V1::GamesController < ApplicationController
 
   end
 
+  #新增账户综合数据
+  def synthetic_data
+    gid = params[:id]
+    sdate = params[:sdate]
+    edate = params[:edate]
+
+    #账户综合数据
+    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: gid).by_statdate(sdate,edate)
+    #留在率及登录账户数
+    #查询7日留存
+    sqls = ["sum(newaccount) as day1count"]
+    (2..30).each do |it|
+      col_name = "day#{it}count"
+      sqls.push("sum(#{col_name}) as #{col_name}")
+    end
+    day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: gid).by_statdate(sdate,edate).first
+    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: gid).by_statdate(sdate,edate).group(:statdate).group_by(&:statdate)
+
+
+
+    #['2021-01-01','2021-01-02'...]
+    select_days = (Date.parse(sdate)..Date.parse(edate)).map(&:to_s)
+
+    Rails.logger.debug "-----------------------"
+    Rails.logger.debug select_days
+
+    #['2021-01-01','2021-01-02'...]
+    check_days = (Date.parse(sdate)...Date.today).map(&:to_s)
+
+    Rails.logger.debug check_days
+
+    ary = []
+
+    day_vals = select_days.map{|it| days_sum[it]&.first&.newaccount }
+
+    day_vals.each_with_index do |it,idx|
+      ary.push(ary[idx-1].to_i + it)
+    end
+
+    ary.push(*(Array.new(check_days.length - select_days.length, ary.last))).reverse!
+
+    Rails.logger.debug ary
+
+    result = {}
+    data1.to_a.each do |it|
+      it.days30channelfee.scan(/(\d+):([\w%;]*)/) do |day,str|
+        result[day] = Hash.new(0) unless result[day]
+        str.scan(/%(\d+)%(\d+)/) do |acc, fee|
+          result[day][:acc] += acc.to_i
+          result[day][:fee] += fee.to_i/100
+        end
+      end
+    end
+
+    result.each do |key, val|
+      val[:login] = day_accounts.send("day#{key}count")
+      val[:total] = ary[key.to_i - 1]
+    end
+
+    puts result
+
+
+    #(1..check_days.length).each do |it|
+
+    #end
+
+
+
+
+
+
+  end
+
+
 
 end

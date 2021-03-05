@@ -17,6 +17,7 @@ Rails.application.routes.draw do
           get :time_data
           get :summary
           get :channel_users
+          get :synthetic_data
         end
       end
 

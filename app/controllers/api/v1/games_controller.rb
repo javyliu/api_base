@@ -205,7 +205,13 @@ class Api::V1::GamesController < ApplicationController
       val[:total] = ary[key.to_i - 1]
     end
 
-    puts result
+    result.each do |key,val|
+      val[:fufeili] = val[:acc]*100.0 / val[:total]
+      val[:arpu] = val[:fee] * 1.0 / val[:total]
+      val[:liuchun] = val[:login] * 100.0 / val[:total]
+    end
+
+    Rails.logger.debug  result
 
 
     #(1..check_days.length).each do |it|

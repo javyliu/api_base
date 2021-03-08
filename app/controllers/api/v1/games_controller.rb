@@ -206,9 +206,9 @@ class Api::V1::GamesController < ApplicationController
     end
 
     result.each do |key,val|
-      val[:fufeili] = val[:acc]*100.0 / val[:total]
-      val[:arpu] = val[:fee] * 1.0 / val[:total]
-      val[:liuchun] = val[:login] * 100.0 / val[:total]
+      val[:fufeili] = (val[:acc]*100.0 / val[:total]).round(2)
+      val[:arpu] = (val[:fee] * 1.0 / val[:total]).round(2)
+      val[:liuchun] = (val[:login] * 100.0 / val[:total]).round(2)
     end
 
     Rails.logger.debug  result

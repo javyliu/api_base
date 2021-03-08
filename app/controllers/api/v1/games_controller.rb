@@ -149,6 +149,8 @@ class Api::V1::GamesController < ApplicationController
   #新增账户综合数据, 返回 累计付费率，累计ARPU, 留存率
   def synthetic_data
     gid = params[:id]
+    channels = params[:channels]
+    country = params[:country]
     sdate = Date.parse(params[:sdate])
     edate = Date.parse(params[:edate])
     if edate >= Date.today
@@ -164,8 +166,18 @@ class Api::V1::GamesController < ApplicationController
       col_name = "day#{it}count"
       sqls.push("sum(#{col_name}) as #{col_name}")
     end
-    day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: gid).by_statdate(sdate,edate).first
-    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: gid).by_statdate(sdate,edate).group(:statdate).group_by(&:statdate)
+    day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: gid).by_statdate(sdate,edate)
+    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: gid).by_statdate(sdate,edate).group(:statdate)
+    if channels.present?
+      day_accounts = day_accounts.where(chlcode: channels)
+      days_sum = days_sum.where(chlcode: channels)
+    end
+    if country.present?
+      day_accounts = day_accounts.where(country: country)
+      days_sum = days_sum.where(country: country)
+    end
+    day_accounts = day_accounts.first
+    days_sum = days_sum.group_by(&:statdate)
 
     #['2021-01-01','2021-01-02'...]
     select_days = (sdate..edate).map(&:to_s)
@@ -189,6 +201,7 @@ class Api::V1::GamesController < ApplicationController
     end
     ary.reverse!
 
+
     result = {}
     #把每天每个渠道的注册数及充值数加起来得到这段时间第一天到第记录天数的新增账户数及充值数
     #{1:{acc: xx, fee: xx}, 2: {acc: xx, fee: xx},...}
@@ -207,20 +220,77 @@ class Api::V1::GamesController < ApplicationController
       val[:total] = ary[key.to_i - 1]
     end
 
+    Rails.logger.debug result
     return_data = {}
 
     result.keys.each do |key,val|
       tmp = {}
       val = result[key]
-      tmp[:fufeili] = (val[:acc]*100.0 / val[:total]).round(2)
-      tmp[:arpu] = (val[:fee] * 1.0 / val[:total]).round(2)
-      tmp[:liuchun] = (val[:login] * 100.0 / val[:total]).round(2)
+      tmp[:fufeili] = val[:total] = 0 ? 0 : (val[:acc]*100.0 / val[:total]).round(2)
+      tmp[:arpu] =  val[:total] = 0 ? 0 : (val[:fee] * 1.0 / val[:total]).round(2)
+      tmp[:liuchun] =  val[:total] = 0 ? 0 : (val[:login] * 100.0 / val[:total]).round(2)
       return_data[key] = tmp
     end
 
     Rails.logger.debug  "resunt_data: #{return_data}"
 
     render json: return_data
+  end
+
+  #新增账户行为分析-付费
+  def new_account_behavior
+    gid = params[:id]
+    channels = params[:channels]
+    country = params[:country]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+    #账户综合数据
+    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: gid).by_statdate(sdate,edate)
+    if country.present?
+      data1 = data1.where(country: country)
+    end
+
+    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: gid).by_statdate(sdate,edate).group(:statdate)
+    if channels.present?
+      days_sum = days_sum.where(chlcode: channels)
+    end
+    if country.present?
+      days_sum = days_sum.where(country: country)
+    end
+    days_sum = days_sum.group_by(&:statdate)
+
+    result = []
+    #把每天每个渠道的注册数及充值数加起来得到这段时间第一天到第记录天数的新增账户数及充值数
+    #{1:{acc: xx, fee: xx}, 2: {acc: xx, fee: xx},...}
+    data1.to_a.each do |it|
+      acc_num = days_sum[it.statdate]&.first&.newaccount || 0
+      tmp = {date: it.statdate, acc_num: acc_num}
+      days_tmp = {}
+      it.days30channelfee.scan(/(\d+):([\w%;]*)/) do |day,str|
+        days_tmp[day] = Hash.new(0) unless days_tmp[day]
+        str.scan(/%(\d+)%(\d+)/) do |acc, fee|
+          days_tmp[day][:acc] += acc.to_i
+          days_tmp[day][:fee] += fee.to_i/100
+        end
+      end
+      tmp[:num1] = acc_num > 0 ? (days_tmp['1'].try(:[],:acc).to_i * 100.0 / acc_num).round(2) : 0
+      tmp[:num3] = acc_num > 0 ? (days_tmp['3'].try(:[],:acc).to_i * 100.0 / acc_num).round(2) : 0
+      tmp[:num7] = acc_num > 0 ? (days_tmp['7'].try(:[],:acc).to_i * 100.0 / acc_num).round(2) : 0
+      tmp[:arpu1] = acc_num > 0 ? (days_tmp['1'].try(:[],:fee).to_f  / acc_num).round(2) : 0
+      tmp[:arpu3] = acc_num > 0 ? (days_tmp['3'].try(:[],:fee).to_f  / acc_num).round(2) : 0
+      tmp[:arpu7] = acc_num > 0 ? (days_tmp['7'].try(:[],:fee).to_f  / acc_num).round(2) : 0
+      tmp[:arppu1] = (days_tmp['1'][:fee].to_f / days_tmp['1'][:acc]).round(2) rescue 0
+      tmp[:arppu3] = (days_tmp['3'][:fee].to_f / days_tmp['3'][:acc]).round(2) rescue 0
+      tmp[:arppu7] = (days_tmp['7'][:fee].to_f / days_tmp['7'][:acc]).round(2) rescue 0
+
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+
   end
 
 end

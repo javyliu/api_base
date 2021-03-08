@@ -18,8 +18,10 @@ Rails.application.routes.draw do
           get :summary
           get :channel_users
           get :synthetic_data
+          get :new_account_behavior
         end
       end
+      resources :channels, only: [:index]
 
 
     end

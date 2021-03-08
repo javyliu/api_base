@@ -146,11 +146,14 @@ class Api::V1::GamesController < ApplicationController
 
   end
 
-  #新增账户综合数据
+  #新增账户综合数据, 返回 累计付费率，累计ARPU, 留存率
   def synthetic_data
     gid = params[:id]
-    sdate = params[:sdate]
-    edate = params[:edate]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
 
     #账户综合数据
     data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: gid).by_statdate(sdate,edate)
@@ -164,32 +167,31 @@ class Api::V1::GamesController < ApplicationController
     day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: gid).by_statdate(sdate,edate).first
     days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: gid).by_statdate(sdate,edate).group(:statdate).group_by(&:statdate)
 
-
-
     #['2021-01-01','2021-01-02'...]
-    select_days = (Date.parse(sdate)..Date.parse(edate)).map(&:to_s)
+    select_days = (sdate..edate).map(&:to_s)
 
     Rails.logger.debug "-----------------------"
-    Rails.logger.debug select_days
 
     #['2021-01-01','2021-01-02'...]
-    check_days = (Date.parse(sdate)...Date.today).map(&:to_s)
+    check_days = (sdate...Date.today).map(&:to_s)
 
-    Rails.logger.debug check_days
+    #新增账户数
+    day_vals = select_days.map{|it| days_sum[it]&.first&.newaccount || 0 }
 
+    #下一天的数注数为下一天的注册数加上前一天的注册数
     ary = []
-
-    day_vals = select_days.map{|it| days_sum[it]&.first&.newaccount }
-
     day_vals.each_with_index do |it,idx|
       ary.push(ary[idx-1].to_i + it)
     end
 
-    ary.push(*(Array.new(check_days.length - select_days.length, ary.last))).reverse!
-
-    Rails.logger.debug ary
+    if check_days.length - select_days.length > 0
+      ary.push(*(Array.new(check_days.length - select_days.length, ary.last)))
+    end
+    ary.reverse!
 
     result = {}
+    #把每天每个渠道的注册数及充值数加起来得到这段时间第一天到第记录天数的新增账户数及充值数
+    #{1:{acc: xx, fee: xx}, 2: {acc: xx, fee: xx},...}
     data1.to_a.each do |it|
       it.days30channelfee.scan(/(\d+):([\w%;]*)/) do |day,str|
         result[day] = Hash.new(0) unless result[day]
@@ -205,26 +207,20 @@ class Api::V1::GamesController < ApplicationController
       val[:total] = ary[key.to_i - 1]
     end
 
-    result.each do |key,val|
-      val[:fufeili] = (val[:acc]*100.0 / val[:total]).round(2)
-      val[:arpu] = (val[:fee] * 1.0 / val[:total]).round(2)
-      val[:liuchun] = (val[:login] * 100.0 / val[:total]).round(2)
+    return_data = {}
+
+    result.keys.each do |key,val|
+      tmp = {}
+      val = result[key]
+      tmp[:fufeili] = (val[:acc]*100.0 / val[:total]).round(2)
+      tmp[:arpu] = (val[:fee] * 1.0 / val[:total]).round(2)
+      tmp[:liuchun] = (val[:login] * 100.0 / val[:total]).round(2)
+      return_data[key] = tmp
     end
 
-    Rails.logger.debug  result
+    Rails.logger.debug  "resunt_data: #{return_data}"
 
-
-    #(1..check_days.length).each do |it|
-
-    #end
-
-
-
-
-
-
+    render json: return_data
   end
-
-
 
 end

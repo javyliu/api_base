@@ -271,7 +271,8 @@ class Api::V1::GamesController < ApplicationController
       days_tmp = {}
       it.days30channelfee.scan(/(\d+):([\w%;]*)/) do |day,str|
         days_tmp[day] = Hash.new(0) unless days_tmp[day]
-        str.scan(/%(\d+)%(\d+)/) do |acc, fee|
+        str.scan(/(\w+)%(\d+)%(\d+)/) do |chl,acc, fee|
+          next if channels.kind_of?(Array) && !channels.include?(chl)
           days_tmp[day][:acc] += acc.to_i
           days_tmp[day][:fee] += fee.to_i/100
         end
@@ -282,14 +283,14 @@ class Api::V1::GamesController < ApplicationController
       tmp[:arpu1] = acc_num > 0 ? (days_tmp['1'].try(:[],:fee).to_f  / acc_num).round(2) : 0
       tmp[:arpu3] = acc_num > 0 ? (days_tmp['3'].try(:[],:fee).to_f  / acc_num).round(2) : 0
       tmp[:arpu7] = acc_num > 0 ? (days_tmp['7'].try(:[],:fee).to_f  / acc_num).round(2) : 0
-      tmp[:arppu1] = (days_tmp['1'][:fee].to_f / days_tmp['1'][:acc]).round(2) rescue 0
-      tmp[:arppu3] = (days_tmp['3'][:fee].to_f / days_tmp['3'][:acc]).round(2) rescue 0
-      tmp[:arppu7] = (days_tmp['7'][:fee].to_f / days_tmp['7'][:acc]).round(2) rescue 0
+      tmp[:arppu1] = days_tmp['1'][:acc] > 0 ? (days_tmp['1'][:fee].to_f / days_tmp['1'][:acc]).round(2) : 0
+      tmp[:arppu3] = days_tmp['3'][:acc] > 0 ? (days_tmp['3'][:fee].to_f / days_tmp['3'][:acc]).round(2) : 0
+      tmp[:arppu7] = days_tmp['7'][:acc] > 0 ? (days_tmp['7'][:fee].to_f / days_tmp['7'][:acc]).round(2) : 0
 
       result.push(tmp)
     end
 
-    Rails.logger.debug result
+    render json: result
 
   end
 

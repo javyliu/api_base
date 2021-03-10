@@ -450,7 +450,6 @@ class Api::V1::GamesController < ApplicationController
   #新增账户行为分析-N日最大级别
   def max_level
     gid = params[:id]
-    by = params[:by]
     channels = params[:channels]
     country = params[:country]
     sdate = Date.parse(params[:sdate])
@@ -479,6 +478,12 @@ class Api::V1::GamesController < ApplicationController
       accs_1 = accs_1.where(backchannel: channels)
       accs_2 = accs_2.where(backchannel: channels)
       accs_3 = accs_3.where(backchannel: channels)
+    end
+    if country.present?
+      data1 = data1.where(country: country)
+      accs_1 = accs_1.where(country: country)
+      accs_2 = accs_2.where(country: country)
+      accs_3 = accs_3.where(country: country)
     end
 
     accs_1 = accs_1.count
@@ -521,4 +526,155 @@ class Api::V1::GamesController < ApplicationController
     Rails.logger.debug result
     render json: result
   end
+
+  #新增账户分布-机型(Top20)
+  def model_data
+    gid = params[:id]
+    channels = params[:channels]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+    data1 = PipAccountDay.select('clientmodel, count(1) num').by_statdate(sdate,edate).by_gameid(gid).where(state: 1).group(:clientmodel).order("num desc").to_a
+
+    result = []
+
+    count_idx = 0
+    data1.each do |it|
+      tmp = {}
+      next if 'OTHER|OTHER' == it.clientmodel
+      break if count_idx == 20
+
+      tmp[:model] = it.clientmodel.upcase
+      tmp[:count] = it.num
+      count_idx+=1
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+
+    render json: result
+  end
+
+  #新增账户分布-地域 by:area
+  #新增账户分布-版本 by: version
+  def data_by
+    gid = params[:id]
+    channels = params[:channels]
+    country = params[:country]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    by = if params[:by] == 'area'
+           'province'
+         elsif params[:by] == 'version'
+           'version'
+         end
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+    data1 = PipAccountDay.select("#{by}, count(1) num").by_statdate(sdate,edate).by_gameid(gid).where(state: 1).group(by).order("num desc")
+    if channels.present?
+      data1 = data1.where(channel: channels)
+    end
+    if country.present?
+      data1 = data1.where(channel: country)
+    end
+    data1 = data1.to_a
+
+    result = []
+
+    data1.each do |it|
+      tmp = {}
+      tmp[by] = it.send(by)
+      tmp[:count] = it.num
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+
+    render json: result
+  end
+
+  ###################################################
+  #充值分析
+  def pay_review
+    gid = params[:id]
+    channels = params[:channels]
+    country = params[:country]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+
+    data1 = StatIncome3Day.select('statdate,sum(amount) as amount, sum(amount2) as amount2').by_statdate(sdate,edate).by_gameid(gid).group(:statdate).group_by(&:statdate)
+    data2 = StatActiveFeeDay.select('statdate, sum(feenum) feenum,  sum(activenum) activenum').by_statdate(sdate,edate).by_gameid(gid).group(:statdate).group_by(&:statdate)
+
+    result = []
+    (sdate..edate).each do |dt|
+      date = dt.to_s
+      tmp = {date: date}
+      tmp[:amount] = (data1[date]&.first&.amount.to_i/100.0).round(2)
+      tmp[:amount2] = (data1[date]&.first&.amount2.to_i/100.0).round(2)
+      tmp[:feenum] = data2[date]&.first&.feenum.to_i
+      tmp[:activenum] = data2[date]&.first&.activenum.to_i
+      tmp[:fee_rate] = tmp[:activenum] == 0 ? 0.0 : (tmp[:feenum] * 100.0 / tmp[:activenum]).round(2)
+      tmp[:arpu] = tmp[:activenum] == 0 ? 0.0 : (tmp[:amount] / tmp[:activenum]).round(2)
+      tmp[:arppu] = tmp[:activenum] == 0 ? 0.0 : (tmp[:amount] / tmp[:feenum]).round(2)
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+
+    render json: result
+
+  end
+
+  #新老付费账户分析
+  def fee_user_analyze
+    gid = params[:id]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+    #付费账户, firstcharge = 1 为新增付费账号
+    data1 = StatIncomeSumDay.select('statdate, accountid, money1, firstcharge').by_statdate(sdate,edate).where(gamecode: gid).group_by(&:statdate)
+    new_fee_num = {}
+    data1.map do |key, vals|
+      tmp = {count: 0, money1: 0}
+      vals.each do |obj|
+        tmp[:money1] += obj.money1
+        tmp[:count] += 1 if obj.firstcharge == 1
+      end
+
+      new_fee_num[key] = tmp
+    end
+
+    Rails.logger.debug new_fee_num
+
+    #分成前收入
+    data2 = StatIncome3Day.select('statdate,sum(amount) as amount').by_statdate(sdate,edate).where(gamecode: gid).group(:statdate).group_by(&:statdate)
+    #付费账户数
+    data3 = StatActiveFeeDay.select('statdate, sum(feenum) as feenum').by_statdate(sdate,edate).where(gamecode: gid).group(:statdate).group_by(&:statdate)
+
+    result = []
+    (sdate..edate).each do |dt|
+      date = dt.to_s(:db)
+      tmp = {date: date}
+      tmp[:amount] = (data2[date]&.first&.amount.to_i/100.0).round(2)
+      tmp[:feenum] = data3[date]&.first&.feenum.to_i
+      tmp[:money1] = new_fee_num[date].try(:[],:money1)
+      tmp[:newfnum] = new_fee_num[date].try(:[], :count)
+      tmp[:newfrate] = tmp[:newfnum] /
+
+
+
+    end
+
+
+
+
+
+
+  end
+
 end

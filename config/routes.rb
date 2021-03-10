@@ -23,6 +23,9 @@ Rails.application.routes.draw do
           get :participation
           get :online_time
           get :max_level
+          get :model_data
+          get :data_by
+          get :pay_review
         end
       end
       resources :channels, only: [:index]

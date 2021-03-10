@@ -19,6 +19,10 @@ Rails.application.routes.draw do
           get :channel_users
           get :synthetic_data
           get :new_account_behavior
+          get :retention_rate
+          get :participation
+          get :online_time
+          get :max_level
         end
       end
       resources :channels, only: [:index]

@@ -1,6 +1,7 @@
 class StatActivationChannelDay < PipstatRecord
   self.table_name='stat_activation_channel_day'
   scope :by_statdate, lambda { |sdate, edate| where(statdate: sdate..edate) }
+  scope :by_channel, lambda { |chl| where(chlcode: chl) }
 
   def self.activated_num(sdate,edate,gid)
     result = select('statdate, total as activated_num').where(gamecode: gid).by_statdate(sdate,edate).group_by(&:statdate)

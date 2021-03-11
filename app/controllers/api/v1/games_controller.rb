@@ -80,15 +80,18 @@ class Api::V1::GamesController < ApplicationController
     render json: data.values
   end
 
-  #渠道玩家走势
+  #渠道新增玩家走势
   #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为“注册”
   #cate: 1：新增注册数 2：新增激活数 3：新增账户数
   def channel_users
     coop_type = params[:coop_type].to_i
     cate = (params[:cate] || 1).to_i
     gid = params[:id]
-    sdate = params[:sdate]
-    edate = params[:edate]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate]
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
 
     #渠道号对应名称
     channel_map = ChannelCodeInfo.channel_map(gid)
@@ -136,7 +139,8 @@ class Api::V1::GamesController < ApplicationController
       tmp_h[:chl_name] = chl_model&.channel || '非确认渠道'
       tmp_h[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model.balance_way.to_i]
       tmp_h[:total] = days_ary.reduce(0) do |sum,date_col|
-        tmp_h[date_col] = num_hash.dig(date_col, code)
+        date = date_col.to_s(:db)
+        tmp_h[date] = num_hash.dig(date, code)
         sum += tmp_h[date_col]
       end
       result.push(tmp_h)
@@ -637,19 +641,21 @@ class Api::V1::GamesController < ApplicationController
       edate = Date.today - 1.day
     end
     #付费账户, firstcharge = 1 为新增付费账号
-    data1 = StatIncomeSumDay.select('statdate, accountid, money1, firstcharge').by_statdate(sdate,edate).where(gamecode: gid).group_by(&:statdate)
+    data1 = StatIncomeSumDay.select('statdate, accountid, money1, firstcharge').by_date(sdate,edate).where(gamecode: gid).group_by(&:statdate).to_a
     new_fee_num = {}
     data1.map do |key, vals|
+      first_charge_accounts = vals.reduce([]){|sum,it|sum.push(it.accountid) if it.firstcharge == '1'; sum }
+
       tmp = {count: 0, money1: 0}
       vals.each do |obj|
-        tmp[:money1] += obj.money1
-        tmp[:count] += 1 if obj.firstcharge == 1
+        tmp[:money1] += obj.money1 if first_charge_accounts.include?(obj.accountid)
+        tmp[:count] += 1 if obj.firstcharge == '1'
       end
 
       new_fee_num[key] = tmp
     end
 
-    Rails.logger.debug new_fee_num
+    Rails.logger.debug new_fee_num.inspect
 
     #分成前收入
     data2 = StatIncome3Day.select('statdate,sum(amount) as amount').by_statdate(sdate,edate).where(gamecode: gid).group(:statdate).group_by(&:statdate)
@@ -662,19 +668,109 @@ class Api::V1::GamesController < ApplicationController
       tmp = {date: date}
       tmp[:amount] = (data2[date]&.first&.amount.to_i/100.0).round(2)
       tmp[:feenum] = data3[date]&.first&.feenum.to_i
-      tmp[:money1] = new_fee_num[date].try(:[],:money1)
+      tmp[:money1] = (new_fee_num[date].try(:[],:money1).to_i/100.0).round(2)
       tmp[:newfnum] = new_fee_num[date].try(:[], :count)
-      tmp[:newfrate] = tmp[:newfnum] /
+      tmp[:newnrate] = (tmp[:newfnum].to_i*100.0 / tmp[:feenum]).round(2)
+      tmp[:newmrate] = (tmp[:money1]*100 / tmp[:amount]).round(2)
+      result.push(tmp)
+    end
 
+    Rails.logger.debug result
 
+    render json: result
+  end
 
+  #不同时期注册账户收入贡献-付费账户数-贡献金额,stat_income_regtime_day, regtime%feenum%feemoney
+  def reg_charge
+    gid = params[:id]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    by = if params[:by] == 'num'
+           :num
+         else
+           :fee
+         end
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+
+    data1 = StatIncomeRegtimeDay.select('statdate,regtimemoney').where(gamecode: gid).by_date(sdate,edate).group_by(&:statdate)
+    data1.each do |key, vals|
+      data1[key] = vals.first.regtimemoney.scan(/([0-9-]+)%(\d+)%(\d+)/).map{|date, num, fee| {date_num: Date.parse(date).to_time.to_i, num: num.to_i, fee: fee.to_f/100}}
     end
 
 
+    result = []
+    (sdate..edate).each do |dt|
+      date = dt.to_s(:db)
+      vals = data1[date]
+      tmp = Hash.new(0)
+      tp = [dt.to_time.to_i, (dt-1.week).to_time.to_i,(dt-2.week).to_time.to_i,(dt-3.week).to_time.to_i,(dt-4.week).to_time.to_i,(dt-60.days).to_time.to_i,(dt-90.days).to_time.to_i,(dt-180.days).to_time.to_i,(dt-365.days).to_time.to_i ]
 
 
+      total = vals.reduce(0){|sum,it| sum += it[by]}
 
+      #时间点
+      vals.each do |it|
+        case it[:date_num]
+        when tp[0]
+          tmp[:w0] += it[by].to_i
+        when tp[1]...tp[0]
+          tmp[:w1] += it[by].to_i
+        when tp[2]...tp[1]
+          tmp[:w2] += it[by].to_i
+        when tp[3]...tp[2]
+          tmp[:w3] += it[by].to_i
+        when tp[4]...tp[3]
+          tmp[:w4] += it[by].to_i
+        when tp[5]...tp[4]
+          tmp[:m2] += it[by].to_i
+        when tp[6]...tp[5]
+          tmp[:m3] += it[by].to_i
+        when tp[7]...tp[6]
+          tmp[:m6] += it[by].to_i
+        when tp[8]...tp[7]
+          tmp[:y1] += it[by].to_i
+        else
+          tmp[:ym] += it[by].to_i
+        end
+      end
 
+      tmp.each do |key,val|
+        tmp[key] = (val*100.0 / total).round(2)
+      end
+      tmp[:date] = date
+      tmp[:total] = total
+
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+
+    render json: result
   end
+
+  # 收入分布-渠道
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为“注册”
+  #cate: 1：分成前 2：分成后
+  def income_channel
+    coop_type = params[:coop_type].to_i
+    cate = (params[:cate] || 1).to_i
+    gid = params[:id]
+    sdate = params[:sdate]
+    edate = params[:edate]
+
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+
+    #渠道号对应名称
+    channel_map = ChannelCodeInfo.channel_map(gid)
+    channel_map = channel_map.where(balance_way: coop_type) if coop_type != 0
+    channel_map = channel_map.to_a.group_by(&:code)
+
+    days_ary = (sdate..edate).to_a
+  end
+
 
 end

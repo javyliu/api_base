@@ -26,6 +26,9 @@ Rails.application.routes.draw do
           get :model_data
           get :data_by
           get :pay_review
+          get :fee_user_analyze
+          get :reg_charge
+          get :income_channel
         end
       end
       resources :channels, only: [:index]

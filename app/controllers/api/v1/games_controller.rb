@@ -81,14 +81,14 @@ class Api::V1::GamesController < ApplicationController
   end
 
   #渠道新增玩家走势
-  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为“注册”
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为 0, 即所有
   #cate: 1：新增注册数 2：新增激活数 3：新增账户数
   def channel_users
     coop_type = params[:coop_type].to_i
     cate = (params[:cate] || 1).to_i
     gid = params[:id]
     sdate = Date.parse(params[:sdate])
-    edate = Date.parse(params[:edate]
+    edate = Date.parse(params[:edate])
     if edate >= Date.today
       edate = Date.today - 1.day
     end
@@ -751,14 +751,14 @@ class Api::V1::GamesController < ApplicationController
   end
 
   # 收入分布-渠道
-  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为“注册”
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）, 0 为所有
   #cate: 1：分成前 2：分成后
   def income_channel
     coop_type = params[:coop_type].to_i
     cate = (params[:cate] || 1).to_i
     gid = params[:id]
-    sdate = params[:sdate]
-    edate = params[:edate]
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
 
     if edate >= Date.today
       edate = Date.today - 1.day
@@ -770,6 +770,43 @@ class Api::V1::GamesController < ApplicationController
     channel_map = channel_map.to_a.group_by(&:code)
 
     days_ary = (sdate..edate).to_a
+
+    col =  cate == 1 ? 'money1' : 'money2'
+
+    data1 = PipIncomegroupDay.select("statdate, registerchannel, sum(#{col}) as money").where(gamecode: gid).by_date(sdate,edate).group(:statdate, :registerchannel).to_a
+    reg_channels = data1.reduce([]){|sum, obj| sum.push(obj.registerchannel); sum}.uniq
+    act_channels = PipActivegroupDay.where(gamecode: gid).by_date(sdate,edate).pluck(:channel).uniq
+
+    money_hash = data1.group_by(&:statdate)
+    money_hash.each do |k,vals|
+      money_hash[k] = vals.reduce(Hash.new(0)) do |sit, it|
+        sit[it.registerchannel] = it.money/100.0
+        sit
+      end
+    end
+
+    #导出注册和激活渠道
+    result = []
+    (reg_channels | act_channels).each do |code|
+      next if !channel_map.include?(code) && coop_type != 0 #非所有时展示所有
+      chl_model = channel_map[code].first
+      tmp_h = Hash.new(0)
+      tmp_h[:chl] = code
+      tmp_h[:chl_name] = chl_model&.channel || '非确认渠道'
+      tmp_h[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model.balance_way.to_i]
+      tmp_h[:total] = days_ary.reduce(0) do |sum,date_col|
+        date = date_col.to_s(:db)
+        tmp_h[date] = money_hash.dig(date, code)
+        sum += tmp_h[date]
+      end
+      result.push(tmp_h)
+
+    end
+
+    Rails.logger.debug result
+    render json: result
+
+
   end
 
 

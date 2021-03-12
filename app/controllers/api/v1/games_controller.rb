@@ -805,6 +805,62 @@ class Api::V1::GamesController < ApplicationController
 
     Rails.logger.debug result
     render json: result
+  end
+
+  #收入分布-地域
+  #收入分布-支付通道
+  #根据地域信息统计收入
+  def area_income
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    gid = params[:id]
+    money = params[:money] == 'after' ? :money2 : :money1
+    by_key = params[:by]
+    by = if by_key == 'paychannel'
+           :paychannel
+         elsif by_key == 'sys'
+           :phonesys
+         else
+           by_key = :area
+           :province
+         end
+
+
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
+
+    data1 = PipIncomegroupDay.select("statdate,#{by},sum(#{money}) as money").where(gamecode: gid).by_date(sdate,edate).group(by, :statdate).to_a
+
+    result = []
+    data1.group_by(&by).each do |key, vals|
+      tmp = {}
+      tmp[by_key] = key
+      grds = vals.group_by(&:statdate)
+      total = 0
+      (sdate..edate).each do |dt|
+        date = dt.to_s(:db)
+        tmp[date] = grds[date]&.first&.money.to_i/100.0
+        total += tmp[date]
+      end
+      tmp[:total] = total.round(2)
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+    render json: result
+  end
+
+  #收入分布-支付通道
+  def pay_income
+    sdate = Date.parse(params[:sdate])
+    edate = Date.parse(params[:edate])
+    gid = params[:id]
+    by = params[:by] == 'after' ? :money2 : :money1
+
+    if edate >= Date.today
+      edate = Date.today - 1.day
+    end
 
 
   end

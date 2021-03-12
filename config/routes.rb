@@ -29,6 +29,7 @@ Rails.application.routes.draw do
           get :fee_user_analyze
           get :reg_charge
           get :income_channel
+          get :area_income
         end
       end
       resources :channels, only: [:index]

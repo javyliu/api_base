@@ -601,7 +601,7 @@ class Api::V1::GamesController < ApplicationController
   end
 
   ###################################################
-  #充值分析
+  #充值分析,付费综述
   def pay_review
     gid = params[:id]
     channels = params[:channels]
@@ -785,7 +785,7 @@ class Api::V1::GamesController < ApplicationController
       end
     end
 
-    #导出注册和激活渠道
+    #注册和激活渠道
     result = []
     (reg_channels | act_channels).each do |code|
       next if !channel_map.include?(code) && coop_type != 0 #非所有时展示所有
@@ -810,7 +810,7 @@ class Api::V1::GamesController < ApplicationController
   #收入分布-地域
   #收入分布-支付通道
   #根据地域信息统计收入
-  def area_income
+  def income_by
     sdate = Date.parse(params[:sdate])
     edate = Date.parse(params[:edate])
     gid = params[:id]
@@ -820,6 +820,8 @@ class Api::V1::GamesController < ApplicationController
            :paychannel
          elsif by_key == 'sys'
            :phonesys
+         elsif by_key == 'region'
+           :regionid
          else
            by_key = :area
            :province
@@ -851,18 +853,120 @@ class Api::V1::GamesController < ApplicationController
     render json: result
   end
 
-  #收入分布-支付通道
-  def pay_income
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）, 0 为所有
+  #付费渗透率-渠道 /api/v1/games/10/pay_rate_by?sdate=2021-01-01&edate=2021-01-07&cate=avg&coop_type=1&by=channel
+  #付费渗透率-渠道 付费账户数 /api/v1/games/10/pay_rate_by?sdate=2021-01-01&edate=2021-01-07&cate=num&coop_type=1&by=channel
+  #付费渗透率-操作系统  /api/v1/games/10/pay_rate_by?sdate=2021-01-01&edate=2021-01-07&cate=avg&by=sys
+  #付费渗透率-操作系统 付费账户数 /api/v1/games/10/pay_rate_by?sdate=2021-01-01&edate=2021-01-07&cate=num&by=sys
+  def pay_rate_by
+    coop_type = params[:coop_type].to_i
     sdate = Date.parse(params[:sdate])
     edate = Date.parse(params[:edate])
-    gid = params[:id]
-    by = params[:by] == 'after' ? :money2 : :money1
-
     if edate >= Date.today
       edate = Date.today - 1.day
     end
+    gid = params[:id]
+    cate = if params[:cate] == 'avg'
+            :avg
+          else
+            :num
+          end
+    select_cols = []
+    by = case params[:by]
+         when 'channel'
+           select_cols[0] = 'statdate, registerchannel as channel, count(distinct accountid) as count'
+           select_cols[1] = 'statdate, channel, sum(count) as count'
+           :channel
+         when 'area'
+           select_cols[0] = 'statdate, province, count(distinct accountid) as count'
+           select_cols[1] = 'statdate, province, sum(count) as count'
+           :province
+         when 'sys'
+           select_cols[0] = 'statdate, phonesys, count(distinct accountid) as count'
+           select_cols[1] = 'statdate, system as phonesys, sum(count) as count'
+           :phonesys
+         when 'partition'
+           select_cols[0] = 'statdate, regionid, count(distinct accountid) as count'
+           select_cols[1] = 'statdate, regionid, activelevel as count'
+           :regionid
+         end
 
 
+    #渠道号对应名称
+    if by == :channel
+      channel_map = ChannelCodeInfo.channel_map(gid)
+      channel_map = channel_map.where(balance_way: coop_type) if coop_type != 0
+      channel_map = channel_map.to_a.group_by(&:code)
+    end
+
+    days_ary = (sdate..edate).to_a
+
+    data1 = StatIncomeSumDay.select(select_cols[0]).by_date(sdate,edate).where(gamecode: gid).group(by, :statdate).to_a
+    data2 = if by == :regionid
+              PipActivelevelDay.select(select_cols[1]).by_date(sdate,edate).where(gamecode: gid).each do |obj|
+                obj.count = obj.count.scan(/%(\d+)/).flatten.map(&:to_i).sum
+              end
+            else
+              PipActivegroupDay.select(select_cols[1]).by_date(sdate,edate).where(gamecode: gid).group(by, :statdate).to_a
+            end
+
+    Rails.logger.debug data2
+
+    reg_map = data1.map(&by).uniq
+    act_map = data2.map(&by).uniq
+
+    pay_num = data1.group_by(&:statdate)
+    pay_num.each do |key,vals|
+      pay_num[key] = vals.group_by(&by)
+    end
+    act_num = data2.group_by(&:statdate)
+    act_num.each do |key,vals|
+      act_num[key] = vals.group_by(&by)
+    end
+
+    #注册和激活渠道
+    result = []
+    day_length = days_ary.length
+    (reg_map | act_map).each do |code|
+      tmp_h = Hash.new(0)
+      tmp_h[by] = code
+      if by == :channel
+        next if by == :channel && !channel_map.include?(code) && coop_type != 0 #非所有时展示所有
+        chl_model = channel_map[code]&.first
+        tmp_h[:chl_name] = chl_model&.channel || '非确认渠道'
+        tmp_h[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model.balance_way.to_i]
+      end
+
+      total = 0
+      p_zero_len = 0
+      a_zero_len = 0
+      days_ary.each do |dt|
+        date = dt.to_s(:db)
+        pnum = pay_num.dig(date,code)&.first&.count.to_i
+        p_zero_len+=1 if pnum == 0
+        anum = act_num.dig(date,code)&.first&.count.to_i
+        a_zero_len+=1 if anum == 0
+        tmp_h[date] = cate == :avg ? (anum == 0 ? 0 : (pnum * 100.0 / anum) ).round(2) : pnum
+        total += tmp_h[date]
+      end
+
+
+      if by == :channel
+        tmp_h[:avg] = (total/day_length).round(2)
+      else
+        if cate == :avg
+          a_zero_len = day_length - a_zero_len
+          tmp_h[:avg] = (a_zero_len == 0 ? 0 : total / a_zero_len).round(2)
+        else
+          p_zero_len = day_length - p_zero_len
+          tmp_h[:avg] = (p_zero_len == 0 ? 0 : total / p_zero_len).round(2)
+        end
+      end
+      result.push(tmp_h)
+    end
+
+    Rails.logger.debug result
+    render json: result
   end
 
 

@@ -31,6 +31,9 @@ Rails.application.routes.draw do
           get :income_channel
           get :income_by
           get :pay_rate_by
+          get :first_charge_by
+          get :activity_preview
+          get :activity_by
         end
       end
       resources :channels, only: [:index]

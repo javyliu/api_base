@@ -966,6 +966,8 @@ class Api::V1::GamesController < ApplicationController
   #活跃账户分布-渠道,操作系统，地域，分区
   #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为 0, 即所有
   #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=area&coop_type=4
+  #注册天数
+  #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=regdays
   def activity_by
     coop_type = params[:coop_type].to_i
     by = case params[:by]
@@ -986,43 +988,65 @@ class Api::V1::GamesController < ApplicationController
            data1 = PipActivegroupDay.select(select_cols)
            :system
          when 'regdays'
-           select_cols = 'statdate, activedayinfo, 0 as count'
+           select_cols = 'statdate, activedayinfo'
            data1 = StatActiveFeeDay.select(select_cols)
-           con = {'当天': 0, '': 1..7, '':8..14, '':}
-           :regionid
+           con = {'当天': 0, '1周': 1..7, '2周':8..14,'3周':15..21, '4周':22..28,'4周-2月':29..60,'2月-3月':61..90,'3月-6月':91..180,'6月-1年':181..360,'1年以前':361..}
+           nil
          end
-    data1 = data1.where(gamecode: @gid).by_date(@sdate,@edate).group(by, :statdate).group_by(&by)
-
-
+    data1 = data1.where(gamecode: @gid).by_date(@sdate,@edate).group(by, :statdate).to_a
+    data1 = data1.group_by(&by) if by
 
     result = []
+    days = (@sdate..@edate).to_a
 
-    data1.each do |key,objs|
-      next if by == :channel && !channel_map.include?(key) && coop_type != 0
-      tmp = {}
-      tmp[by] = key
-      if by == :channel
-        chl_model = channel_map[key]&.first
-        tmp[:chl_name] = chl_model&.channel || '非确认渠道'
-        tmp[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model&.balance_way.to_i]
+    if con
+      data1 = data1.group_by(&:statdate)
+      data1.each do |key, vals|
+        val = vals.first.activedayinfo.scan(/(\d*)%(\d*)/).map{|v1,v2| [v1.to_i, v2.to_i]}
+        data1[key] = val
       end
-      days = (@sdate..@edate).to_a
-      total = 0
-      zero_len = 0
-      vals = objs.group_by(&:statdate)
-      days.each do |dt|
-        date = dt.to_s(:db)
-        _count = vals[date]&.first&.count.to_i
-        tmp[date] = _count
-        total += _count
-        zero_len += 1 if _count == 0
+      con.each do |key, _range|
+        tmp = {}
+        tmp[params[:by]] = key
+        total = 0
+        days.each do |dt|
+          date = dt.to_s(:db)
+          its = data1[date] || []
+          num = 0
+          its.each do |_day, _num|
+            num += _num if _range === _day
+          end
+          total += num
+          tmp[date] = num
+        end
+        tmp[:avg] = total/days.length
+        result.push(tmp)
       end
+    else
+      data1.each do |key,objs|
+        next if by == :channel && !channel_map.include?(key) && coop_type != 0
+        tmp = {}
+        tmp[params[:by]] = key
+        if by == :channel
+          chl_model = channel_map[key]&.first
+          tmp[:chl_name] = chl_model&.channel || '非确认渠道'
+          tmp[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model&.balance_way.to_i]
+        end
+        total = 0
+        zero_len = 0
+        vals = objs.group_by(&:statdate)
+        days.each do |dt|
+          date = dt.to_s(:db)
+          _count = vals[date]&.first&.count.to_i
+          tmp[date] = _count
+          total += _count
+          zero_len += 1 if _count == 0
+        end
 
-      divisor = days.length - zero_len
-      tmp[:avg] = divisor == 0 ? 0 : total / divisor
-
-      result.push(tmp)
-
+        divisor = days.length - zero_len
+        tmp[:avg] = divisor == 0 ? 0 : total / divisor
+        result.push(tmp)
+      end
     end
 
     Rails.logger.debug result

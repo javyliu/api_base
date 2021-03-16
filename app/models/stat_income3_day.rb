@@ -1,7 +1,7 @@
 class StatIncome3Day < PipstatRecord
   self.table_name='stat_income3_day'
 
-  scope :by_statdate, lambda { |sdate, edate| where(statdate: sdate..edate) }
+  scope :by_date, lambda { |sdate, edate| where(statdate: sdate..edate) }
   scope :by_gameid, lambda { |gids| where(gamecode: gids) }
 
   InComeTpl = {'amount':0,'amount2':0,'highonlinenum':0,'avgonlinenum':0,'new_user':0}
@@ -11,7 +11,7 @@ class StatIncome3Day < PipstatRecord
   #收入分成前、后 amount1:分成后按合作方,amount: 分成前,amount:分成前
   #如果by_date为真，表示日期进行分组
   #select statdate, gamecode, sum(amount) as amount, sum(amount2) as amount2 from stat_income3_day where gamecode in ( 124,113) and statdate >= '2020-01-01' and statdate <= '2020-01-02' group by statdate, gamecode
-  def self.get_income(sdate,edate,gids, by_date: false)
+  def self.get_income(sdate,edate,gids, with_date: false)
     #按statdate进行分组进行查询
     if by_date
       selects = 'statdate,sum(amount) as amount, sum(amount2) as amount2'
@@ -20,7 +20,7 @@ class StatIncome3Day < PipstatRecord
       selects = 'gamecode, sum(amount) as amount, sum(amount2) as amount2'
       groups = :gamecode
     end
-    result = select(selects).by_gameid(gids).by_statdate(sdate,edate).group(groups)
+    result = select(selects).by_gameid(gids).by_date(sdate,edate).group(groups)
     result = result.group_by{|item| item.send(groups)}
 
     #转化为元

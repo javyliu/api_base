@@ -1,7 +1,7 @@
 #某时间段内最高在线用户数按天平均（PCU）,平均在线用户数(ACU)
 class StatUserDay < PipstatRecord
   self.table_name='stat_userdata_day'
-  scope :by_statdate, lambda { |sdate, edate| where(statdate: sdate..edate) }
+  scope :by_date, lambda { |sdate, edate| where(statdate: sdate..edate) }
   scope :by_gameid, lambda { |gids| where(gameswitch: gids) }
 
   NeedCalHourIdx =  [0,1,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
@@ -13,7 +13,7 @@ class StatUserDay < PipstatRecord
   #返回一个数据，每个游戏返回一个StatUserDay对像
   #用avgonlinenum 来存储计算后的pointtimeonline 时均值
   #return: [gamecode, highonlinenum, avgonlinenum]
-  def self.get_max_and_avg_online(sdate,edate,gids, by_date: false)
+  def self.get_max_and_avg_online(sdate,edate,gids, with_date: false)
     selects = "statdate,gameswitch, highonlinenum,pointtimeonline"
     if by_date
       groups = :statdate
@@ -21,7 +21,7 @@ class StatUserDay < PipstatRecord
       groups = :gameswitch
     end
 
-    obj_hash = select(selects).by_gameid(gids).by_statdate(sdate,edate).order(:statdate, :gameswitch).group_by{|obj| obj.send(groups)}
+    obj_hash = select(selects).by_gameid(gids).by_date(sdate,edate).order(:statdate, :gameswitch).group_by{|obj| obj.send(groups)}
     obj_hash.each do |key, vals|
       obj_hash[key] = vals.reduce({highonlinenum: 0,avgonlinenum: 0}){|result, item| result[:highonlinenum]+= item.highonlinenum; result[:avgonlinenum] += item.cal_average; result}
 

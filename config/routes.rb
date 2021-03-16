@@ -34,6 +34,11 @@ Rails.application.routes.draw do
           get :first_charge_by
           get :activity_preview
           get :activity_by
+          get :activity_hour
+          get :online_data
+          get :avg_online_data
+          get :high_online_data
+          get :lost_overview
         end
       end
       resources :channels, only: [:index]

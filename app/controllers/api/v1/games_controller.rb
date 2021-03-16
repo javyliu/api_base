@@ -9,14 +9,14 @@ class Api::V1::GamesController < ApplicationController
 
   #某个游戏总体数据一览
   def show
-    data1 = StatIncome3Day.get_income(@sdate,@edate,@gid, by_date: true)
+    data1 = StatIncome3Day.get_income(@sdate,@edate,@gid, with_date: true)
     Rails.logger.info "-----------"
     Rails.logger.info data1
-    data2 = StatUserDay.get_max_and_avg_online(@sdate,@edate,@gid, by_date: true)
+    data2 = StatUserDay.get_max_and_avg_online(@sdate,@edate,@gid, with_date: true)
     Rails.logger.info data2
-    data3 = PipAccountDay.get_new_players(@sdate,@edate,@gid, by_date: true)
+    data3 = PipAccountDay.get_new_players(@sdate,@edate,@gid, with_date: true)
     Rails.logger.info data3
-    data4 = StatActiveFeeDay.get_fee_active(@sdate,@edate,@gid, by_date: true)
+    data4 = StatActiveFeeDay.get_fee_active(@sdate,@edate,@gid, with_date: true)
     Rails.logger.info data4
 
     data = data1.deep_merge(data2).deep_merge(data3).deep_merge(data4)
@@ -70,7 +70,7 @@ class Api::V1::GamesController < ApplicationController
   #新增玩家综述
   #params: id: gameid, @sdate,@edate
   def summary
-    data1 = PipAccountDay.get_new_players(@sdate,@edate,@gid, by_date: true)
+    data1 = PipAccountDay.get_new_players(@sdate,@edate,@gid, with_date: true)
     data2 = StatActivationChannelDay.activated_num(@sdate,@edate,@gid)
 
     data3 = StatAccountDay.registed_users(@sdate,@edate,@gid)
@@ -99,7 +99,7 @@ class Api::V1::GamesController < ApplicationController
       channel_codes = num_hash.values.map{|item| item.keys}.flatten.uniq
     when 2
       #新增激活数
-      num_hash = StatActivationChannelDay.select('statdate, chlcode, sum(total) as activated_num').where(gamecode: @gid).by_statdate(@sdate,@edate).group(:chlcode, :statdate).group_by(&:statdate)
+      num_hash = StatActivationChannelDay.select('statdate, chlcode, sum(total) as activated_num').where(gamecode: @gid).by_date(@sdate,@edate).group(:chlcode, :statdate).group_by(&:statdate)
       channel_codes = Set[]
       num_hash.each do |k,vals|
         num_hash[k] = vals.reduce(Hash.new(0)) do |sit, it|
@@ -110,7 +110,7 @@ class Api::V1::GamesController < ApplicationController
       end
     when 3
       #新增账户数
-      num_hash = PipAccountDay.select('statdate,backchannel,count(1) as num').by_gameid(@gid).by_statdate(@sdate,@edate).where(state: 1).group(:backchannel, :statdate).group_by(&:statdate)
+      num_hash = PipAccountDay.select('statdate,backchannel,count(1) as num').by_gameid(@gid).by_date(@sdate,@edate).where(state: 1).group(:backchannel, :statdate).group_by(&:statdate)
       channel_codes = Set[]
       num_hash.each do |k,vals|
         num_hash[k] = vals.reduce(Hash.new(0)) do |sit, it|
@@ -148,7 +148,7 @@ class Api::V1::GamesController < ApplicationController
     country = params[:country]
 
     #账户综合数据
-    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: @gid).by_statdate(@sdate,@edate)
+    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: @gid).by_date(@sdate,@edate)
     #留在率及登录账户数
     #查询7日留存
     sqls = ["sum(newaccount) as day1count"]
@@ -156,8 +156,8 @@ class Api::V1::GamesController < ApplicationController
       col_name = "day#{it}count"
       sqls.push("sum(#{col_name}) as #{col_name}")
     end
-    day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: @gid).by_statdate(@sdate,@edate)
-    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: @gid).by_statdate(@sdate,@edate).group(:statdate)
+    day_accounts = StatActivationChannelDay.select(sqls.join(',')).where(gamecode: @gid).by_date(@sdate,@edate)
+    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: @gid).by_date(@sdate,@edate).group(:statdate)
     if channels.present?
       day_accounts = day_accounts.where(chlcode: channels)
       days_sum = days_sum.where(chlcode: channels)
@@ -232,12 +232,12 @@ class Api::V1::GamesController < ApplicationController
     channels = params[:channels]
     country = params[:country]
     #账户综合数据
-    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: @gid).by_statdate(@sdate,@edate)
+    data1 = StatUseractiveDay.select("statdate, days30channelfee").where(gameswitch: @gid).by_date(@sdate,@edate)
     if country.present?
       data1 = data1.where(country: country)
     end
 
-    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: @gid).by_statdate(@sdate,@edate).group(:statdate)
+    days_sum = StatActivationChannelDay.select('statdate,sum(newaccount) as newaccount').where(gamecode: @gid).by_date(@sdate,@edate).group(:statdate)
     if channels.present?
       days_sum = days_sum.where(chlcode: channels)
     end
@@ -296,7 +296,7 @@ class Api::V1::GamesController < ApplicationController
       col_name = "day#{it}count"
       sqls.push("sum(#{col_name}) as #{col_name}")
     end
-    db_data = db_data.select(sqls.join(',')).where(gamecode: @gid).by_statdate(@sdate,@edate).group(:statdate)
+    db_data = db_data.select(sqls.join(',')).where(gamecode: @gid).by_date(@sdate,@edate).group(:statdate)
 
     if channels.present?
       db_data = db_data.by_channel(channels)
@@ -330,7 +330,7 @@ class Api::V1::GamesController < ApplicationController
 
     #按渠道或者版本查询账户数
     #按渠道或者版本查询启动次数
-    db_data1 = PipAccountDay.select("statdate,stepnum, count(1) total").by_gameid(@gid).by_statdate(@sdate,@edate).where(state: 1).group(:statdate, :stepnum)
+    db_data1 = PipAccountDay.select("statdate,stepnum, count(1) total").by_gameid(@gid).by_date(@sdate,@edate).where(state: 1).group(:statdate, :stepnum)
     if channels.present?
       db_data1 = db_data1.where(backchannel: channels)
     end
@@ -340,11 +340,11 @@ class Api::V1::GamesController < ApplicationController
 
     db_data1 = db_data1.to_a
 
-    data_by_statdate = db_data1.group_by(&:statdate)
+    data_by_date = db_data1.group_by(&:statdate)
 
     result = []
     (@sdate..@edate).each do |date|
-      vals = data_by_statdate[date.to_s] || []
+      vals = data_by_date[date.to_s] || []
       tmp = {date: date.to_s}
       total = vals.reduce(0){|sum, obj| sum += obj.total }
       tmp[:total] = total
@@ -370,7 +370,7 @@ class Api::V1::GamesController < ApplicationController
 
     #按渠道或者版本查询账户数
     #按渠道或者版本查询启动次数
-    db_data1 = PipAccountDay.select("statdate,onlinetime").by_gameid(@gid).by_statdate(@sdate,@edate).where(state: 1)
+    db_data1 = PipAccountDay.select("statdate,onlinetime").by_gameid(@gid).by_date(@sdate,@edate).where(state: 1)
     if channels.present?
       db_data1 = db_data1.where(backchannel: channels)
     end
@@ -378,10 +378,10 @@ class Api::V1::GamesController < ApplicationController
       db_data1 = db_data1.where(backversion: country)
     end
 
-    data_by_statdate = db_data1.group_by(&:statdate)
+    data_by_date = db_data1.group_by(&:statdate)
 
     result = []
-    data_by_statdate.each do |key, vals|
+    data_by_date.each do |key, vals|
       total = vals.length
       tmp = {date: key, total: total}
       tmp_sum = Hash.new(0)
@@ -420,7 +420,7 @@ class Api::V1::GamesController < ApplicationController
     country = params[:country]
 
     #时间范围内第一日第二日第三日级别，注册后第二日才会记录level2, 第三日才会记录level3,
-    data1 = PipAccountDay.select('level1, level2, level3').by_statdate(@sdate,@edate).by_gameid(@gid).where(state: 1)
+    data1 = PipAccountDay.select('level1, level2, level3').by_date(@sdate,@edate).by_gameid(@gid).where(state: 1)
 
     #因为只统计前20级及大于20级的用户，把data1中大于20的都变更会21
     data1.each do |it|
@@ -430,9 +430,9 @@ class Api::V1::GamesController < ApplicationController
     end
 
     #第1..3日账户数
-    accs_1 = PipAccountDay.select(1).by_statdate(@sdate,@edate).by_gameid(@gid).where(state: 1)
-    accs_2 = PipAccountDay.select(1).by_statdate(@sdate,@edate - 1.day).by_gameid(@gid).where(state: 1)
-    accs_3 = PipAccountDay.select(1).by_statdate(@sdate,@edate - 2.day).by_gameid(@gid).where(state: 1)
+    accs_1 = PipAccountDay.select(1).by_date(@sdate,@edate).by_gameid(@gid).where(state: 1)
+    accs_2 = PipAccountDay.select(1).by_date(@sdate,@edate - 1.day).by_gameid(@gid).where(state: 1)
+    accs_3 = PipAccountDay.select(1).by_date(@sdate,@edate - 2.day).by_gameid(@gid).where(state: 1)
 
     if channels.present?
       data1 = data1.where(backchannel: channels)
@@ -491,7 +491,7 @@ class Api::V1::GamesController < ApplicationController
   #新增账户分布-机型(Top20)
   def model_data
     channels = params[:channels]
-    data1 = PipAccountDay.select('clientmodel, count(1) num').by_statdate(@sdate,@edate).by_gameid(@gid).where(state: 1).group(:clientmodel).order("num desc").to_a
+    data1 = PipAccountDay.select('clientmodel, count(1) num').by_date(@sdate,@edate).by_gameid(@gid).where(state: 1).group(:clientmodel).order("num desc").to_a
 
     result = []
 
@@ -522,7 +522,7 @@ class Api::V1::GamesController < ApplicationController
          elsif params[:by] == 'version'
            'version'
          end
-    data1 = PipAccountDay.select("#{by}, count(1) num").by_statdate(@sdate,@edate).by_gameid(@gid).where(state: 1).group(by).order("num desc")
+    data1 = PipAccountDay.select("#{by}, count(1) num").by_date(@sdate,@edate).by_gameid(@gid).where(state: 1).group(by).order("num desc")
     if channels.present?
       data1 = data1.where(channel: channels)
     end
@@ -551,8 +551,8 @@ class Api::V1::GamesController < ApplicationController
     channels = params[:channels]
     country = params[:country]
 
-    data1 = StatIncome3Day.select('statdate,sum(amount) as amount, sum(amount2) as amount2').by_statdate(@sdate,@edate).by_gameid(@gid).group(:statdate).group_by(&:statdate)
-    data2 = StatActiveFeeDay.select('statdate, sum(feenum) feenum,  sum(activenum) activenum').by_statdate(@sdate,@edate).by_gameid(@gid).group(:statdate).group_by(&:statdate)
+    data1 = StatIncome3Day.select('statdate,sum(amount) as amount, sum(amount2) as amount2').by_date(@sdate,@edate).by_gameid(@gid).group(:statdate).group_by(&:statdate)
+    data2 = StatActiveFeeDay.select('statdate, sum(feenum) feenum,  sum(activenum) activenum').by_date(@sdate,@edate).by_gameid(@gid).group(:statdate).group_by(&:statdate)
 
     result = []
     (@sdate..@edate).each do |dt|
@@ -594,9 +594,9 @@ class Api::V1::GamesController < ApplicationController
     Rails.logger.debug new_fee_num.inspect
 
     #分成前收入
-    data2 = StatIncome3Day.select('statdate,sum(amount) as amount').by_statdate(@sdate,@edate).where(gamecode: @gid).group(:statdate).group_by(&:statdate)
+    data2 = StatIncome3Day.select('statdate,sum(amount) as amount').by_date(@sdate,@edate).where(gamecode: @gid).group(:statdate).group_by(&:statdate)
     #付费账户数
-    data3 = StatActiveFeeDay.select('statdate, sum(feenum) as feenum').by_statdate(@sdate,@edate).where(gamecode: @gid).group(:statdate).group_by(&:statdate)
+    data3 = StatActiveFeeDay.select('statdate, sum(feenum) as feenum').by_date(@sdate,@edate).where(gamecode: @gid).group(:statdate).group_by(&:statdate)
 
     result = []
     (@sdate..@edate).each do |dt|
@@ -899,7 +899,7 @@ class Api::V1::GamesController < ApplicationController
 
     days_ary = (@sdate..@edate).to_a
 
-    data1 = StatActiveFeeDay.select("statdate, #{by}").by_statdate(@sdate,@edate).where(gamecode: @gid).group_by(&:statdate)
+    data1 = StatActiveFeeDay.select("statdate, #{by}").by_date(@sdate,@edate).where(gamecode: @gid).group_by(&:statdate)
     data1.each do |dt, vals|
       Rails.logger.error '长度大于1，需重新处理！ ' if vals.length > 1
       data1[dt] = vals.first.send(by).scan(/(\d+)%(\d+)/)
@@ -937,8 +937,8 @@ class Api::V1::GamesController < ApplicationController
   ########################################
   #活跃分析
   def activity_preview
-    data1 = StatActiveFeeDay.select('statdate, activenum, loyalnum').where(gamecode: @gid).by_statdate(@sdate,@edate).group_by(&:statdate) #活跃账户数及忠诚用户数
-    data2 = PipAccountDay.select('statdate,count(1) as num').where(gamecode: @gid).by_statdate(@sdate,@edate).group(:statdate).group_by(&:statdate) #新增账户数
+    data1 = StatActiveFeeDay.select('statdate, activenum, loyalnum').where(gamecode: @gid).by_date(@sdate,@edate).group_by(&:statdate) #活跃账户数及忠诚用户数
+    data2 = PipAccountDay.select('statdate,count(1) as num').where(gamecode: @gid).by_date(@sdate,@edate).group(:statdate).group_by(&:statdate) #新增账户数
 
     result = []
     (@sdate..@edate).each do |dt|
@@ -968,6 +968,10 @@ class Api::V1::GamesController < ApplicationController
   #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=area&coop_type=4
   #注册天数
   #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=regdays
+  #级别分布,可以传入指定分区以逗号分隔
+  #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=level|&ps=xx
+  #在线时长
+  #/api/v1/games/10/activity_by?sdate=2021-01-01&edate=2021-01-07&by=online
   def activity_by
     coop_type = params[:coop_type].to_i
     by = case params[:by]
@@ -990,11 +994,22 @@ class Api::V1::GamesController < ApplicationController
          when 'regdays'
            select_cols = 'statdate, activedayinfo'
            data1 = StatActiveFeeDay.select(select_cols)
-           con = {'当天': 0, '1周': 1..7, '2周':8..14,'3周':15..21, '4周':22..28,'4周-2月':29..60,'2月-3月':61..90,'3月-6月':91..180,'6月-1年':181..360,'1年以前':361..}
-           nil
+           con = {'当天': 0, '1周': 1..7, '2周':8..14,'3周':15..21, '4周':22..28,'4周-2月':29..60,'2月-3月':61..90,'3月-6月':91..180,'6月-1年':181..365,'1年以前':366..}
+           :activedayinfo
+         when 'level'
+           select_cols = 'statdate, activelevel'
+           data1 = PipActivelevelDay.select(select_cols)
+           con = :max #表示需通过查询得到最大值
+           data1 = data1.where(regionid: params[:ps].split(',')) if params[:ps]
+           :activelevel
+         when 'online'
+           select_cols = 'statdate, loguser'
+           data1 = StatAccountDay.select(select_cols)
+           con = {'1min以下':0..60, '1-10min':61..600,'10-30min':601..1800, '30-60min':1801..3600,'60-90min':3601..5400,'90-120min':5401..7200,'120-180min':7201..10800,'3小时以上':10801..}
+           :loguser
          end
-    data1 = data1.where(gamecode: @gid).by_date(@sdate,@edate).group(by, :statdate).to_a
-    data1 = data1.group_by(&by) if by
+    data1 = data1.by_gameid(@gid).by_date(@sdate,@edate).group(by, :statdate).to_a
+    data1 = data1.group_by(&by) unless con
 
     result = []
     days = (@sdate..@edate).to_a
@@ -1002,8 +1017,13 @@ class Api::V1::GamesController < ApplicationController
     if con
       data1 = data1.group_by(&:statdate)
       data1.each do |key, vals|
-        val = vals.first.activedayinfo.scan(/(\d*)%(\d*)/).map{|v1,v2| [v1.to_i, v2.to_i]}
+        val = vals.map(&by).join(';').scan(/(\d*)%(\d*)/).map{|v1,v2| count_time ? [v2.to_i, 1] : [v1.to_i, v2.to_i]}
         data1[key] = val
+      end
+      if con == :max
+        max = data1.values.flatten[(0..).step(2)].max
+        con = {}
+        (1..max).each{|it| con["#{it}级"] = it}
       end
       con.each do |key, _range|
         tmp = {}
@@ -1013,13 +1033,11 @@ class Api::V1::GamesController < ApplicationController
           date = dt.to_s(:db)
           its = data1[date] || []
           num = 0
-          its.each do |_day, _num|
-            num += _num if _range === _day
-          end
+          its.each { |_v1, _v2| num += _v2 if _range ===_v1 }
           total += num
           tmp[date] = num
         end
-        tmp[:avg] = total/days.length
+        tmp[:avg] = count_time ? total : total/days.length
         result.push(tmp)
       end
     else
@@ -1051,9 +1069,181 @@ class Api::V1::GamesController < ApplicationController
 
     Rails.logger.debug result
     render json: result
+  end
+
+  #分时数据
+  #分区用逗号分隔 ps
+  def activity_hour
+    data1 = StatIncomefeeHour.select('right(datehour,2) datehour,fee').by_date(@sdate,@edate).by_gameid(@gid)
+    data2 = StatUserDay.by_date(@sdate,@edate).by_gameid(@gid)
+    if params[:ps].present?
+      partitions = params[:ps].split(',')
+      data1 = data1.where(regionid: partitions)
+      data2 = data2.where(gameregion: partitions)
+    end
+    data1 = data1.group_by(&:datehour)
+    data2 = data2.pluck(:pointtimeonline).join(';').scan(/([0-9-时]+)%(\d+)/).group_by{|it| it.first}
+    result = []
+    len = (@edate - @sdate + 1).to_i
+    data2.each do |key,vals|
+      tmp = {hour: key}
+      tmp[:avg] = vals.reduce(0){|sum, it| sum+=it[1].to_i}/len
+      _key = key[/\d+/].rjust(2,'0')
+      tmp[:fee] = data1[_key]&.reduce(0){|sum,it| sum+=it.fee}.to_i
+      result.push(tmp)
+    end
+
+    Rails.logger.debug result
+    render json: result
 
   end
 
+  #在线数据
+  def online_data
+    data1 = StatUserDay.select('statdate,pointtimeonline,highonlinenum').by_date(@sdate,@edate).by_gameid(@gid).group_by(&:statdate)
+    result = []
+    days = (@sdate..@edate).to_a
+    days.each do |dt|
+      date = dt.to_s(:db)
+      tmp = Hash.new(0)
+      tmp[:date] = date
+      objs = data1[date] || []
+      tmp[:acu] = objs.reduce(0){|sum,obj|sum += obj.cal_average}
+      tmp[:pcu] = objs.map(&:highonlinenum).sum
+      result.push(tmp)
+    end
+    Rails.logger.debug result
+    render json: result
+  end
+
+  #平均在线走势-分区
+  def avg_online_data
+    data1 = StatUserDay.select('statdate,gameregion,pointtimeonline').by_date(@sdate,@edate).by_gameid(@gid)
+    if params[:ps].present?
+      partitions = params[:ps].split(',')
+      data1 = data1.where(gameregion: partitions)
+    end
+    data1 = data1.group_by(&:statdate)
+    result = []
+    days = (@sdate..@edate).to_a
+    pars = data1.values.flatten.map(&:gameregion).uniq.sort
+    days.each do |dt|
+      date = dt.to_s(:db)
+      tmp = Hash.new(0)
+      tmp[:date] = date
+      objs = (data1[date] || []).group_by(&:gameregion)
+      total = 0
+      pars.each do |par|
+        tmp[par] = objs[par].reduce(0){|sum,obj| sum+=obj.cal_average}
+        total += tmp[par]
+      end
+      tmp[:total] = total
+      result.push(tmp)
+    end
+    Rails.logger.debug result
+    render json: result
+  end
+
+  #最高在线走势-分区
+  def high_online_data
+    data1 = StatUserDay.select('statdate,gameregion,highonlinenum').by_date(@sdate,@edate).by_gameid(@gid)
+    if params[:ps].present?
+      partitions = params[:ps].split(',')
+      data1 = data1.where(gameregion: partitions)
+    end
+    data1 = data1.group_by(&:statdate)
+    result = []
+    days = (@sdate..@edate).to_a
+    pars = data1.values.flatten.map(&:gameregion).uniq.sort
+    days.each do |dt|
+      date = dt.to_s(:db)
+      tmp = Hash.new(0)
+      tmp[:date] = date
+      objs = (data1[date] || []).group_by(&:gameregion)
+      total = 0
+      pars.each do |par|
+        tmp[par] = objs[par].reduce(0){|sum,obj| sum+=obj.highonlinenum}
+        total += tmp[par]
+      end
+      tmp[:total] = total
+      result.push(tmp)
+    end
+    Rails.logger.debug result
+    render json: result
+  end
+
+  ###############流失分析###############################
+  #流失综述
+  #cate: 7,14,30
+  #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为 0, 即所有
+  #by channel 渠道 area 地域 sys 操作系统 level 级别 life 生命周期，fee_num 付费次数 fee_money 付费金额
+  def lost_overview
+    result = []
+    days = (@sdate..@edate).to_a
+    case params[:by]
+    when 'channel'
+      #渠道号对应名称
+      coop_type = params[:coop_type].to_i
+      channel_map = ChannelCodeInfo.channel_map(@gid)
+      channel_map = channel_map.where(balance_way: coop_type) if coop_type != 0
+      channel_map = channel_map.to_a.group_by(&:code)
+      data1 = case params[:cate].to_i
+              when 14
+                StatOutflowDay.select('outflow14channel num1')
+              when 30
+                StatOutflowDay.select('outflow30channel num1')
+              else
+                StatOutflowDay.select('outflow7channel num1')
+              end
+      by = :channel
+    else
+      data2 = StatActiveFeeDay.select('statdate,activenum').by_gameid(@gid).by_date(@sdate,@edate).group_by(&:statdate)
+      data1 = case params[:cate].to_i
+              when 14
+                StatOutflowDay.select('statdate,login14feenum num1,outflow14num num2,outflow14feenum num3')
+              when 30
+                StatOutflowDay.select('statdate,login30feenum num1,outflow30num num2,outflow30feenum num3')
+              else
+                StatOutflowDay.select('statdate,login7feenum num1,outflow7num num2,outflow7feenum num3')
+              end
+      by = :overview
+    end
+    data1 = data1.by_gameid(@gid).by_date(@sdate,@edate)
+
+    case by
+    when :channel
+      data1 = data1.map(&:num1).join(';').scan(/(\w+)%(\d+)/).group_by{|it| it[0]}
+      data1.each do |key, vals|
+        next if  !channel_map.include?(key) && coop_type != 0
+        tmp = {}
+        chl_model = channel_map[key]&.first
+        tmp[:channel] = key
+        tmp[:chl_name] = chl_model&.channel || '非确认渠道'
+        tmp[:coop_type] = ChannelCodeInfo::CoopType[coop_type] || ChannelCodeInfo::CoopType[chl_model&.balance_way.to_i]
+        tmp[:num] = vals.reduce(0){|sum,it| sum += it[1].to_i}
+        result.push(tmp)
+      end
+
+    when :overview
+      data1 = data1.group_by(&:statdate)
+      days.each do |dt|
+        date = dt.to_s(:db)
+        tmp = {}
+        tmp[:date] = date
+        tmp[:act_num] = data2[date]&.first&.activenum.to_i
+        tmp[:act_feenum] = data1[date]&.first&.num1.to_i
+        tmp[:lost_num] = data1[date]&.first&.num2.to_i
+        tmp[:lost_feenum] = data1[date]&.first&.num3&.scan(/(\d+)%(\d+)/)&.map{|v1,v2| v1=='0' ? 0 : v2.to_i}&.sum.to_i
+        tmp[:act_lostrate] = (tmp[:lost_num] * 100.0 / tmp[:act_num]).round(2)
+        tmp[:act_feelostrate] = (tmp[:lost_feenum] * 100.0 / tmp[:act_feenum]).round(2)
+        result.push(tmp)
+      end
+    end
+
+    Rails.logger.debug result
+    render json: result
+
+  end
 
 
 

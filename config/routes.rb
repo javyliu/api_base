@@ -39,6 +39,7 @@ Rails.application.routes.draw do
           get :avg_online_data
           get :high_online_data
           get :lost_overview
+          get :consume_by
         end
       end
       resources :channels, only: [:index]

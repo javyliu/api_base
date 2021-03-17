@@ -1,4 +1,5 @@
 module Paginable
+  extend ActiveSupport::Concern
   protected
   def current_page
     (params[:page] || 1).to_i

@@ -7,7 +7,7 @@ class PipAccountDay < PipstatRecord
   #select statdate, gamecode, count(1) as num from pip_account_day where state = 1 and gamecode in ( 124,113,108,130,129,128,127,123,97,126,73,62,80,78,57,34,25,10,8,1) and statdate >= '2020-01-01' and statdate <= '2020-01-02' group by statdate, gamecode
   #return: [gamecode, new_user]
   def self.get_new_players(sdate,edate,gids, with_date: false)
-    if by_date
+    if with_date
       groups = :statdate
       selects = " statdate, count(1) as new_user"
     else
@@ -17,7 +17,7 @@ class PipAccountDay < PipstatRecord
 
     result = select(selects).by_gameid(gids).by_date(sdate,edate).where(state: 1).group(groups).to_a
 
-    unless by_date
+    unless with_date
       return_gids = result.map(&:gamecode)
       old_gids = Array.wrap(gids) - return_gids
       p "------old_gids: #{old_gids}"

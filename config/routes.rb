@@ -40,6 +40,7 @@ Rails.application.routes.draw do
           get :high_online_data
           get :lost_overview
           get :consume_by
+          get :synthetic_by
         end
       end
       resources :channels, only: [:index]

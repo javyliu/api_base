@@ -5,6 +5,7 @@ class Api::V1::GamesController < ApplicationController
   include ActivityAnalyse
   include LostAnalyse
   include BuyAnalyse
+  include SyntheticAnalyse
 
   #返回所有游戏列表
   def index
@@ -75,9 +76,12 @@ class Api::V1::GamesController < ApplicationController
   private
   def game_params
     @sdate = Date.parse(params[:sdate])
-    @edate = Date.parse(params[:edate])
-    if @edate >= Date.today
-      @edate = Date.today - 1.day
+    if params[:edate]
+
+      @edate = Date.parse(params[:edate])
+      if @edate >= Date.today
+        @edate = Date.today - 1.day
+      end
     end
     @gid = params[:id]
 

@@ -1,4 +1,16 @@
 #新增账户数(老版本),部分老游戏取账户，针对海外接口里的游戏取adduser 如：64（TOA)该游戏已停
+#gameswitch	游戏ID
+#statdate	日期
+#regnum	（已停用）
+#adduser	新建账户数
+#leaveuser	离开用户数
+#model	活跃账户机型分布：机型%活跃账户数；
+#version	活跃账户版本分布：版本-渠道%？%？%？%？%？%？%？；
+#loguser	登陆账户明细：账户ID%当日在线时长（s）；
+#reguser	新增注册数
+#activeuser	活跃账户数
+#regandpayuser	新注册用户中付费用户（未使用）
+
 class StatAccountDay < PipstatRecord
   self.table_name='stat_accountdata_day'
 

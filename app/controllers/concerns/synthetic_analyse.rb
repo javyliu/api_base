@@ -4,14 +4,23 @@ module SyntheticAnalyse
   ######-----综合数据----#####
   #渠道收支对比分析
   #coop_type:合作模式（1注册/2下载/3分成/4联运）,   没有则为 0, 即所有
+  #by contrast: 渠道收支对比分析(默认) aggregate:渠道收支累计分析
   def synthetic_by
     result = []
     coop_type = params[:coop_type].to_i
+    by = case params[:by]
+         when 'aggregate'
+           #累计,渠道收入分成后
+           data1=StatIncomeSumDay.select('registerchannel, sum(money1) money1, sum(money2) money2').where('createtime >= ? and createtime < ? and gamecode=?',@sdate,@edate+1.day,@gid).group(:registerchannel).group_by(&:registerchannel)
+           :aggregate
+         else
+           #按渠道查询分成前收入,渠道收入分成后
+           data1=PipIncomegroupDay.select('registerchannel, sum(money1) money1, sum(money2) money2').by_gameid(@gid).by_date(@sdate,@edate).group(:registerchannel).group_by(&:registerchannel)
+           :contrast
+         end
     channel_map = ChannelCodeInfo.channel_map(@gid).select('userid,balance').includes(:t_user)
     channel_map = channel_map.where(balance_way: coop_type) if coop_type != 0
     channel_map = channel_map.to_a.group_by(&:code)
-    #按渠道查询分成前收入,渠道收入分成后
-    data1=PipIncomegroupDay.select('registerchannel, sum(money1) money1, sum(money2) money2').by_gameid(@gid).by_date(@sdate,@edate).group(:registerchannel).group_by(&:registerchannel)
     #查询充值通道的类型(官网or联运)
     data3 = PaymentInfo.select('channel_income, typecode').by_gameid(@gid).group_by(&:channel_income)
     data3.each {|key,vals| data3[key] = vals.first.typecode}
@@ -54,8 +63,17 @@ module SyntheticAnalyse
       tmp[:income_a] = (data1[key]&.first&.money2.to_i/100.0).round(2)
       tmp[:income_gw] = (data2_chl.dig(key,:gw).to_i/100.0).round(2)
       tmp[:income_ly] = (data2_chl.dig(key,:ly).to_i/100.0).round(2)
-      tmp[:price] = (chl_model.balance.to_f / 100).round(2)
-      tmp[:expend] = (data4[key].to_i * tmp[:price]).round(2)
+      #支出：注册渠道支出为注册数*单价
+      #分成、联运渠道支出为0
+      #盈余：注册渠道盈余为收入（分成后）-支出
+      #分成、联运渠道盈余为收入（分成后）
+      #收支比：盈余/支出
+      tmp[:expend] = if chl_model&.balance_way.to_i == 1
+                       price = chl_model.balance.to_f / 100
+                       (data4[key].to_i * price).round(2)
+                     else
+                       0
+                     end
       tmp[:remain] = (tmp[:income_a] - tmp[:expend]).round(2)
       tmp[:ir_rate] = (tmp[:expend] == 0 ? 0 : tmp[:remain] / tmp[:expend]).round(2)
       result.push(tmp)

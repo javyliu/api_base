@@ -40,6 +40,10 @@ development:
   account:
     pool: 5
     url: <%= Rails.application.credentials.data_account_url_dev%>
+
+  account_archive:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_archive_url_dev%>
 test:
   primary:
     <<: *default
@@ -56,6 +60,9 @@ test:
     pool: 5
     url: <%= Rails.application.credentials.data_account_url_test %>
 
+  account_archive:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_archive_url_test%>
 production:
   primary:
     <<: *default
@@ -87,3 +94,7 @@ production:
   account:
     pool: 5
     url: <%= Rails.application.credentials.data_account_url %>
+
+  account_archive:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_archive_url %>

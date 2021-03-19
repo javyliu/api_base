@@ -43,6 +43,7 @@ class Api::V1::ReportsController < ApplicationController
 
 
   #指定时间区间充值额度大于某值的用户列表
+  #/api/v1/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500
   def accounts_gt_money
     sdate = params[:sdate]
     edate_1 = params[:edate]
@@ -60,6 +61,9 @@ class Api::V1::ReportsController < ApplicationController
     buy_ids = TblBuy.select('max(id) id').where(accountid: account_ids).group(:accountid).map(&:id)
 
     buy_accounts = TblBuy.select('accountid, partition, playerid, playername').where(id: buy_ids).group_by(&:accountid)
+    buy_accounts = buy_accounts.each do |key,vals|
+      buy_accounts[key] = vals.group_by(&:partition)
+    end
 
     gmap = Game.partition_map
 
@@ -72,12 +76,13 @@ class Api::V1::ReportsController < ApplicationController
 
     worksheet.write_row(0,'游戏名称,账号ID,账户名,角色ID,角色名,角色所在分区,活动期间充值金额'.split(','), workbook.bold_format)
 
+    #联运用户有:分隔，官网用户没有
     fee_accounts.each do |item|
       if /:/ =~ item.name
         next
       end
-      buy_item = buy_accounts[item.accountid].first
-      partition = buy_item&.partition || item.partition
+      buy_item = buy_accounts.dig(item.accountid,item.partition)&.first
+      partition = buy_item&.partition
 
       par_key = partition[/[a-z_]+(?=_\d)/,0]
 

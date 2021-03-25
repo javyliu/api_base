@@ -39,7 +39,23 @@ development:
 
   account:
     pool: 5
-    url: <%= Rails.application.credentials.data_account_url_dev%>
+    url: <%= Rails.application.credentials.data_account_url_dev %>
+
+  account_80:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_dev %>
+
+  account_124:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_dev %>
+
+  account_130:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_dev %>
+
+  account_131:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_dev %>
 
   account_archive:
     pool: 5
@@ -57,6 +73,22 @@ test:
     url: <%= Rails.application.credentials.data_platform_pipstat_url_test %>
 
   account:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_test %>
+
+  account_80:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_test %>
+
+  account_124:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_test %>
+
+  account_130:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_url_test %>
+
+  account_131:
     pool: 5
     url: <%= Rails.application.credentials.data_account_url_test %>
 
@@ -94,6 +126,22 @@ production:
   account:
     pool: 5
     url: <%= Rails.application.credentials.data_account_url %>
+
+  account_80:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_80_url %>
+
+  account_124:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_124_url %>
+
+  account_130:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_130_url %>
+
+  account_131:
+    pool: 5
+    url: <%= Rails.application.credentials.data_account_131_url %>
 
   account_archive:
     pool: 5

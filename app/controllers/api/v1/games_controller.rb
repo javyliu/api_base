@@ -62,6 +62,8 @@ class Api::V1::GamesController < ApplicationController
     render json: result.sort.map(&:last)
   end
 
+  ########--自定义查询--########
+
 
 
 

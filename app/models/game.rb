@@ -15,9 +15,22 @@ class Game < MetedataRecord
   end
 
   def self.partition_map(group_att: :gameCodes)
-    gs = Game.select("gameId,gameName,left(gameCodes,14) as gameCodes").where(gamestate: 1).each {|item| item.gameCodes.gsub!(/^\W|(?:_\d).*|','.*/,'')}.group_by {|it| it.send(group_att) }
-    gs.each do |k,v|
-      gs[k] = v.first
+    Rails.cache.fetch("game_map_#{group_att}", expired_in: 1.month) do
+      gs = Game.select("gameId,gameName,gameCodes").where(gamestate: 1).each {|item| item.gameCodes = item.gameCodes.scan(/\w+_\w+/)&.map{|it|it.gsub(/\d{2,3}$/,'')}&.uniq}
+      if group_att != :gameCodes
+        gs.group_by(&:gameCodes)
+        gs.each do |k,v|
+          gs[k] = v.first
+        end
+      end
+      gs
     end
   end
+
+  def self.game_by_partition(partition)
+    par=partition.gsub(/@|\d{2,3}$/,"")
+    partition_map.detect{|it| it.gameCodes.include?(par)}
+  end
+
+
 end

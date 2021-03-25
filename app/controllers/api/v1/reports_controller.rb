@@ -30,11 +30,10 @@ class Api::V1::ReportsController < ApplicationController
   #所有产品实时收入
   def real_time_data
     hour_data = TblFee.hour_data(params[:sdate], params[:edate])
-    game_hash = Game.partition_map
 
     hour_data.each do |gpar, val|
       r1 = {}.merge(StatIncome3Day::TimeTpl,val)
-      r1['gamename'] = game_hash[gpar].gameName
+      r1['gamename'] = gpar
       r1['total'] = val.values.reduce{|sum, it| sum+=it}
       hour_data[gpar] = r1
     end
@@ -46,27 +45,34 @@ class Api::V1::ReportsController < ApplicationController
   #/api/v1/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500
   def accounts_gt_money
     sdate = params[:sdate]
-    edate_1 = params[:edate]
-    money = params[:money]
+    edate = params[:edate]
+    money = params[:money].to_i
 
-    raise "请输入正确的参数" unless sdate.present? && edate_1.present? && money.present?
+    raise "请输入正确的参数" unless sdate.present? && edate.present? && money.present?
 
-    file_name = "#{sdate}~#{edate_1}充值返利名单"
+    file_name = "#{sdate}~#{edate}充值返利名单"
 
 
-    edate = Date.parse(edate_1).next_day.to_s(:db)
-    fee_accounts = TblFee.select('accountid,name, sum(money)/100 money, `partition`').where('money > 0').by_finished_time(sdate,edate).group(:accountid).having('money >= ?', money).joins('inner join tbl_account on tbl_account.id = accountid').to_a
+    #可以通过stat_income_sum_day中来查询充值，没必要从tbl_fee中得到
+    fee_accounts = StatIncomeSumDay.select("accountid, name, sum(money1)/100 money, regioncode, sum(amount) amount").where("finishtime >= ? and finishtime <= ?", sdate,Date.parse(edate).next_day).group(:accountid).having('money>?',money)
 
-    account_ids = fee_accounts.map(&:accountid)
-    buy_ids = TblBuy.select('max(id) id').where(accountid: account_ids).group(:accountid).map(&:id)
-
-    buy_accounts = TblBuy.select('accountid, partition, playerid, playername').where(id: buy_ids).group_by(&:accountid)
-    buy_accounts = buy_accounts.each do |key,vals|
-      buy_accounts[key] = vals.group_by(&:partition)
+    #需要得到角色名的话，需从不同的account 库中表tbl_buy中得到角色名
+    buy_accounts = []
+    fee_by_partition = fee_accounts.group_by { |it| Game.game_by_partition(it.regioncode).gameId}
+    fee_by_partition.each do |key,vals|
+      account_ids = vals.map(&:accountid)
+      #db_gids 中存在的gid未设分表
+      TblBuy.exec_by_gameid(key) do |db_gids|
+        buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: !db_gids.include?(key.to_s) ))
+      end
     end
 
-    gmap = Game.partition_map
 
+    buy_accounts = buy_accounts.group_by(&:accountid)
+
+    #buy_accounts = buy_accounts.each do |key,vals|
+    #  buy_accounts[key] = vals.group_by(&:partition)
+    #end
 
 
     workbook = FastExcel.open(constant_memory: true)
@@ -78,16 +84,15 @@ class Api::V1::ReportsController < ApplicationController
 
     #联运用户有:分隔，官网用户没有
     fee_accounts.each do |item|
-      if /:/ =~ item.name
+      uname = item.name
+      if /:/ =~ uname
         next
       end
-      buy_item = buy_accounts.dig(item.accountid,item.partition)&.first
-      partition = buy_item&.partition
+      buy_item = buy_accounts.dig(item.accountid)&.first
+      partition = buy_item&.partition || item.regioncode
 
-      par_key = partition[/[a-z_]+(?=_\d)/,0]
-
-      game_name = gmap[par_key]&.gameName
-      worksheet << [game_name, item.accountid, item.name, buy_item&.playerid, buy_item&.playername, partition,item.money]
+      game_name = Game.game_by_partition(partition)&.gameName
+      worksheet << [game_name, item.accountid, uname, buy_item&.playerid, buy_item&.player_name, partition,item.money]
     end
 
 

@@ -3,11 +3,11 @@ class AccountRecord < ApplicationRecord
 
   connects_to database: { writing: :account }
 
-  GidDBAry = configurations.configs_for.map(&:name).uniq.join(',').scan(/\d+\b/)
+  GidDbAry = configurations.configs_for.map(&:name).uniq.join(',').scan(/\d+\b/)
 
   def self.exec_by_gameid(gid)
-    establish_connection(GidDBAry.include?(gid.to_s) ? "account_#{gid}".intern : :account)
-    yield GidDBAry
+    establish_connection(GidDbAry.include?(gid.to_s) ? "account_#{gid}".intern : :account)
+    yield GidDbAry
     establish_connection(:account)
     nil
   end

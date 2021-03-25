@@ -54,16 +54,21 @@ class Api::V1::ReportsController < ApplicationController
 
 
     #可以通过stat_income_sum_day中来查询充值，没必要从tbl_fee中得到
-    fee_accounts = StatIncomeSumDay.select("accountid, name, sum(money1)/100 money, regioncode, sum(amount) amount").where("finishtime >= ? and finishtime <= ?", sdate,Date.parse(edate).next_day).group(:accountid).having('money>?',money)
+    fee_accounts = StatIncomeSumDay.select("accountid, name, sum(money1)/100 money, regioncode").where("finishtime >= ? and finishtime <= ?", sdate,Date.parse(edate).next_day).group(:accountid).having('money>?',money)
 
     #需要得到角色名的话，需从不同的account 库中表tbl_buy中得到角色名
     buy_accounts = []
     fee_by_partition = fee_accounts.group_by { |it| Game.game_by_partition(it.regioncode).gameId}
     fee_by_partition.each do |key,vals|
       account_ids = vals.map(&:accountid)
-      #db_gids 中存在的gid未设分表
-      TblBuy.exec_by_gameid(key) do |db_gids|
-        buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: !db_gids.include?(key.to_s) ))
+      #db_gids 中存在的gid未设分表, 也就是说只有:account数据库是有分表的
+      has_archive = !AccountRecord::GidDbAry.include?(key.to_s)
+      if has_archive
+        buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: true))
+      else
+        TblBuy.exec_by_gameid(key) do |db_gids|
+          buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: false ))
+        end
       end
     end
 

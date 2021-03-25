@@ -4,8 +4,6 @@ class TblBuy < AccountRecord
   RoleWithAccount = Struct.new(:accountid, :partition, :playerid, :player_name)
 
   #tbl_buy中有分表，3个月创建一个，每天会把3个月前的数据存到分表中,所以3个月这内的数据从tbl_buy中取，超过3个月往分表中取
-  #该阙值之前的数据为 tbl_buy_1, 之后的每三个月顺序递增
-  ThresholdTime = Date.parse('2014-01-01')
   scope :by_date, lambda { |sdate,edate|
     where(finishtime: sdate..edate)
   }

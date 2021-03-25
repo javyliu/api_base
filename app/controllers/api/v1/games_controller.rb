@@ -63,6 +63,55 @@ class Api::V1::GamesController < ApplicationController
   end
 
   ########--自定义查询--########
+  #m1,m2：金额区间
+  #cate: detail | agg
+  def custom_query
+    result = []
+    sql = "accountid, name, sum(money1)/100 as money, regioncode, sum(amount)/#{PipItemconsumeDay::ConsumeDivisor[@gid]} amount"
+    data1 = StatIncomeSumDay.select(sql).where("finishtime >= ? and finishtime <= ?", @sdate,@edate.next_day).by_gameid(@gid).group(:accountid)
+    data1 = data1.having("money >= ?",params[:m1]) if params[:m1].present?
+    data1 = data1.having("money <= ?",params[:m2]) if params[:m2].present?
+    data1 = data1.to_a
+
+    account_ids = data1.map(&:accountid)
+
+    buy_accounts = []
+    has_archive = !AccountRecord::GidDbAry.include?(@gid.to_s)
+    if has_archive
+      buy_accounts.push(*TblBuy.role_names(@sdate,@edate,account_ids, has_archive: true))
+    else
+      TblBuy.exec_by_gameid(key) do |db_gids|
+        buy_accounts.push(*TblBuy.role_names(@sdate,@edate,account_ids, has_archive: false ))
+      end
+    end
+
+    buy_accounts = buy_accounts.group_by(&:accountid)
+
+    data1.each do |item|
+      tmp = {}
+      buy_item = buy_accounts.dig(item.accountid)&.first
+      partition = item.regioncode || buy_item&.partition
+
+      tmp[:accountid] = item.accountid
+      tmp[:name] = item.name
+      tmp[:par] = partition
+      if params[:cate] == 'detail'
+        tmp[:chl] = ''
+        tmp[:ctime] = ''
+        tmp[:ftime] = ''
+        tmp[:pay_chl] = ''
+      end
+      tmp[:playerid] = buy_item&.playerid
+      tmp[:player_name] = buy_item&.player_name
+      tmp[:money] = item.money
+      tmp[:yb] = item.amount
+      result.push(tmp)
+    end
+
+    render json: result
+
+
+  end
 
 
 

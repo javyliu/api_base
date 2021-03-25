@@ -41,6 +41,7 @@ Rails.application.routes.draw do
           get :lost_overview
           get :consume_by
           get :synthetic_by
+          get :custom_query
         end
       end
       resources :channels, only: [:index]

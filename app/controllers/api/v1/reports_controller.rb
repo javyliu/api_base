@@ -42,11 +42,13 @@ class Api::V1::ReportsController < ApplicationController
 
 
   #指定时间区间充值额度大于某值的用户列表
-  #/api/v1/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500
+  #/api/v1/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500&only=gw
   def accounts_gt_money
     sdate = params[:sdate]
     edate = params[:edate]
+    edate = Date.parse(edate)
     money = params[:money].to_i
+    only = params[:only]
 
     raise "请输入正确的参数" unless sdate.present? && edate.present? && money.present?
 
@@ -54,22 +56,26 @@ class Api::V1::ReportsController < ApplicationController
 
 
     #可以通过stat_income_sum_day中来查询充值，没必要从tbl_fee中得到
-    fee_accounts = StatIncomeSumDay.select("accountid, name, sum(money1)/100 money, regioncode").where("finishtime >= ? and finishtime <= ?", sdate,Date.parse(edate).next_day).group(:accountid).having('money>?',money)
+    fee_accounts = StatIncomeSumDay.select("accountid, name, sum(money1)/100 money, regioncode").where("finishtime >= ? and finishtime <= ?", sdate,edate.next_day).group(:accountid).having('money>?',money)
 
     #需要得到角色名的话，需从不同的account 库中表tbl_buy中得到角色名
     buy_accounts = []
     fee_by_partition = fee_accounts.group_by { |it| Game.game_by_partition(it.regioncode).gameId}
+    edate1 = edate.next_month(3)
     fee_by_partition.each do |key,vals|
       account_ids = vals.map(&:accountid)
       #db_gids 中存在的gid未设分表, 也就是说只有:account数据库是有分表的
-      has_archive = !AccountRecord::GidDbAry.include?(key.to_s)
-      if has_archive
-        buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: true))
-      else
-        TblBuy.exec_by_gameid(key) do |db_gids|
-          buy_accounts.push(*TblBuy.role_names(sdate,edate,account_ids, has_archive: false ))
-        end
+
+      Rails.logger.info "#{key},#{account_ids}"
+
+      len = account_ids.length
+      tmp_ary = []
+      TblBuy.query_data(sdate,edate1,key) do |_mp|
+        break if tmp_ary.length >= len  #如已找到对应的角色则不再查找
+        tmp_ary.push(*TblBuy.data_from_tb(account_ids, db: _mp[:db], tb: _mp[:tb]))
       end
+
+      buy_accounts.push(*tmp_ary)
     end
 
 
@@ -90,7 +96,7 @@ class Api::V1::ReportsController < ApplicationController
     #联运用户有:分隔，官网用户没有
     fee_accounts.each do |item|
       uname = item.name
-      if /:/ =~ uname
+      if only == 'gw' && /:/ =~ uname
         next
       end
       buy_item = buy_accounts.dig(item.accountid)&.first

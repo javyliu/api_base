@@ -42,6 +42,8 @@ Rails.application.routes.draw do
           get :consume_by
           get :synthetic_by
           get :custom_query
+          get :consume_query
+          get :area_list
         end
       end
       resources :channels, only: [:index]

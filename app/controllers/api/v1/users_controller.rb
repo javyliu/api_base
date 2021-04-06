@@ -38,7 +38,7 @@ class Api::V1::UsersController < ApplicationController
   end
 
   def set_user
-    @user = User.find(params[:id])
+    @user = TUser.find(params[:id])
   end
 
   def check_owner

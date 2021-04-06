@@ -1,4 +1,5 @@
 class Api::V1::GamesController < ApplicationController
+  before_action :check_login
   before_action :game_params, except: [:index]
   include NewUserAnalyse
   include PayAnalyse

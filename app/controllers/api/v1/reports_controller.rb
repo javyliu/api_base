@@ -42,7 +42,7 @@ class Api::V1::ReportsController < ApplicationController
 
 
   #指定时间区间充值额度大于某值的用户列表
-  #/api/v1/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500&only=gw
+  #/api/v1/reports/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500&only=gw
   def accounts_gt_money
     sdate = params[:sdate]
     edate = params[:edate]

@@ -12,6 +12,7 @@ Rails.application.routes.draw do
           get :accounts_gt_money
         end
       end
+      resources :sessions
       resources :games, only: [:index, :show]  do
         member do
           get :time_data

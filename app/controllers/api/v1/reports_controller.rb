@@ -42,7 +42,7 @@ class Api::V1::ReportsController < ApplicationController
 
 
   #指定时间区间充值额度大于某值的用户列表
-  #/api/v1/reports/accounts_gt_money?sdate=2021-01-01&edate=2021-01-07&money=1500&only=gw
+  #/api/v1/reports/accounts_gt_money.xlsx?sdate=2021-01-01&edate=2021-01-07&money=1500&only=gw
   def accounts_gt_money
     sdate = params[:sdate]
     edate = params[:edate]
@@ -85,44 +85,56 @@ class Api::V1::ReportsController < ApplicationController
     #  buy_accounts[key] = vals.group_by(&:partition)
     #end
 
+    respond_to do |format|
+      format.json do
+        result = []
+        fee_accounts.each do |item|
+          uname = item.name
+          if only == 'gw' && /:/ =~ uname
+            next
+          end
+          buy_item = buy_accounts.dig(item.accountid)&.first
+          partition = buy_item&.partition || item.regioncode
+          game_name = Game.game_by_partition(partition)&.gameName
+          result << {game_name: game_name, gid: item.accountid, uname: uname, playerid: buy_item&.playerid, player_name:buy_item&.player_name, par: partition,money:item.money}
+        end
 
-    workbook = FastExcel.open(constant_memory: true)
-    worksheet = workbook.add_worksheet(file_name)
-    #invalid
-    #worksheet.auto_width = true
-
-    worksheet.write_row(0,'游戏名称,账号ID,账户名,角色ID,角色名,角色所在分区,活动期间充值金额'.split(','), workbook.bold_format)
-
-    #联运用户有:分隔，官网用户没有
-    fee_accounts.each do |item|
-      uname = item.name
-      if only == 'gw' && /:/ =~ uname
-        next
+        render json: result
       end
-      buy_item = buy_accounts.dig(item.accountid)&.first
-      partition = buy_item&.partition || item.regioncode
+      format.xlsx do
+        workbook = FastExcel.open(constant_memory: true)
+        worksheet = workbook.add_worksheet(file_name)
+        #invalid
+        #worksheet.auto_width = true
+        worksheet.write_row(0,'游戏名称,账号ID,账户名,角色ID,角色名,角色所在分区,活动期间充值金额'.split(','), workbook.bold_format)
+        #联运用户有:分隔，官网用户没有
+        fee_accounts.each do |item|
+          uname = item.name
+          if only == 'gw' && /:/ =~ uname
+            next
+          end
+          buy_item = buy_accounts.dig(item.accountid)&.first
+          partition = buy_item&.partition || item.regioncode
+          game_name = Game.game_by_partition(partition)&.gameName
+          worksheet << [game_name, item.accountid, uname, buy_item&.playerid, buy_item&.player_name, partition,item.money]
+        end
 
-      game_name = Game.game_by_partition(partition)&.gameName
-      worksheet << [game_name, item.accountid, uname, buy_item&.playerid, buy_item&.player_name, partition,item.money]
+        #write_number(row, col, number, format)
+        #for i in 1..5
+        #  for n in 0..3
+        #    worksheet.write_number(i, n, (i+1)*(n+1), nil)
+        #  end
+        #end
+        #chart = workbook.add_chart(Libxlsxwriter::enum_type(:chart_type)[:column])
+        #chart.add_series('Bob', "Sheet1!$A$2:$A$6")
+        #chart.add_series('Alice', "Sheet1!$B$2:$B$6")
+        #chart.add_series('Montgomery', "Sheet1!$C$2:$C$6")
+        #worksheet.insert_chart(1,7, chart)
+        send_data(workbook.read_string, filename: "#{file_name}.xlsx")
+      end
+
     end
 
-
-    #write_number(row, col, number, format)
-    #for i in 1..5
-    #  for n in 0..3
-    #    worksheet.write_number(i, n, (i+1)*(n+1), nil)
-    #  end
-    #end
-
-    #chart = workbook.add_chart(Libxlsxwriter::enum_type(:chart_type)[:column])
-
-    #chart.add_series('Bob', "Sheet1!$A$2:$A$6")
-    #chart.add_series('Alice', "Sheet1!$B$2:$B$6")
-    #chart.add_series('Montgomery', "Sheet1!$C$2:$C$6")
-
-    #worksheet.insert_chart(1,7, chart)
-
-    send_data(workbook.read_string, filename: "#{file_name}.xlsx")
   end
 
 end

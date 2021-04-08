@@ -6,6 +6,7 @@ class Api::V1::ChannelsController < ApplicationController
     result = result.map{|it| {code: it.code,channel: it.channel }}
 
     render json: result
-
   end
+
+
 end

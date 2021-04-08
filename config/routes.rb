@@ -47,7 +47,7 @@ Rails.application.routes.draw do
           get :area_list
         end
       end
-      resources :channels, only: [:index]
+      resources :channels
 
 
     end

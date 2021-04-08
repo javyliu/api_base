@@ -18,7 +18,7 @@ class Game < MetedataRecord
     Rails.cache.fetch("game_map_#{group_att}", expired_in: 1.month) do
       gs = Game.select("gameId,gameName,gameCodes").where(gamestate: 1).each {|item| item.gameCodes = item.gameCodes.scan(/\w+_\w+/)&.map{|it|it.gsub(/\d{2,3}$/,'')}&.uniq}
       if group_att != :gameCodes
-        gs.group_by(&:gameCodes)
+        gs = gs.group_by(&group_att)
         gs.each do |k,v|
           gs[k] = v.first
         end

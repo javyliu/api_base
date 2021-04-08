@@ -10,6 +10,9 @@ Rails.application.routes.draw do
         collection do
           get :real_time_data
           get :accounts_gt_money
+          get :new_player_analyse
+          get :income_analyse
+          get :income_month
         end
       end
       resources :sessions

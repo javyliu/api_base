@@ -1,7 +1,8 @@
 class Api::V1::ReportsController < ApplicationController
+  before_action :sdate_params, except: [:real_time_data]
   #总体数据
   def index
-    gids = params[:gids] && params[:gids].split(',') || Game.all_gids(params[:sdate])
+    gids = @gids
     data1 = StatIncome3Day.get_income(params[:sdate], params[:edate], gids)
     Rails.logger.info "-----------"
     Rails.logger.info data1
@@ -12,10 +13,7 @@ class Api::V1::ReportsController < ApplicationController
     data4 = StatActiveFeeDay.get_fee_active(params[:sdate], params[:edate], gids)
     Rails.logger.info data4
 
-
     data = data1.deep_merge(data2).deep_merge(data3).deep_merge(data4)
-
-
     game_map = Game.partition_map(group_att: :gameId)
 
     data.each do |key,val|
@@ -39,6 +37,97 @@ class Api::V1::ReportsController < ApplicationController
     end
     render json: hour_data.values
   end
+
+  #新增账户分布-全部产品
+  #sdate,edate
+  #/api/v1/reports/new_player_analyse?sdate=2021-01-01&edate=2021-01-07
+  def new_player_analyse
+    data1 = PipAccountDay.select('statdate,gamecode, count(1) num').by_date(@sdate,@edate).by_gameid(@gids).where(state: 1).group(:statdate,:gamecode).group_by{|it|"#{it.gamecode}#{it.statdate}"}
+    data2 = StatAccountDay.select('statdate,gameswitch as gamecode, reguser as num').by_date(@sdate,@edate).by_gameid(@gids).group_by{|it|"#{it.gamecode}#{it.statdate}"}
+
+    result = []
+    gmap = Game.partition_map(group_att: :gameId)
+    date_range = (@sdate..@edate).to_a
+    @gids.each do |gid|
+      next if gid == 0
+      tmp = {}
+      tmp[:gname] = gmap[gid].gameName
+      sum=0
+      date_range.each do |dt|
+        date = dt.to_s
+        tmp[date] = (data1.dig("#{gid}#{date}") || data2.dig("#{gid}#{date}"))&.first&.num.to_i
+        sum+=tmp[date]
+      end
+      tmp[:sum] = sum
+      result.push(tmp)
+    end
+
+    render json: result
+  end
+
+  ##############---充值分析---################
+  #收入分布-全部产品
+  #分成前/后
+  #/api/v1/reports/new_player_analyse?sdate=2021-01-01&edate=2021-01-07
+  #cate 0:分成前, 2:分成后
+  def income_analyse
+    cate = params[:cate] == '2' ? '2' : ''
+    data1 = StatIncome3Day.select("statdate, gamecode, sum(amount#{cate}) amount").by_date(@sdate,@edate).by_gameid(@gids).group(:statdate, :gamecode).group_by{|it|"#{it.gamecode}#{it.statdate}"}
+
+    result = []
+    gmap = Game.partition_map(group_att: :gameId)
+    date_range = (@sdate..@edate).to_a
+    @gids.each do |gid|
+      next if gid == 0
+      tmp = {}
+      tmp[:gname] = gmap[gid].gameName
+      sum=0
+      date_range.each do |dt|
+        date = dt.to_s
+        tmp[date] = (data1.dig("#{gid}#{date}")&.first&.amount.to_f/100).round(2)
+        sum+=tmp[date]
+      end
+      tmp[:sum] = sum.round(2)
+      result.push(tmp)
+    end
+
+    render json: result
+  end
+
+  #月收入分布-全部产品
+  #分成前/后
+  #/api/v1/reports/income_month?sdate=2021-01&edate=2021-02
+  #cate 0:分成前, 2:分成后
+  def income_month
+    cate = params[:cate] == '2' ? '2' : ''
+    data1 = StatIncome3Day.select("left(statdate,7) as statmonth, gamecode, sum(amount#{cate}) amount").by_date(@sdate,@edate).by_gameid(@gids).group(:statmonth, :gamecode).to_a
+
+    month_ary = data1.map(&:statmonth).uniq
+
+    data2 = data1.group_by{|it| "#{it.gamecode}#{it.statmonth}"}
+
+
+    result = []
+    gmap = Game.partition_map(group_att: :gameId)
+    @gids.each do |gid|
+      next if gid == 0
+      tmp = {}
+      tmp[:gname] = gmap[gid].gameName
+      sum=0
+
+      month_ary.each do |it|
+        tmp[it] = (data2.dig("#{gid}#{it}")&.first&.amount.to_f/100).round(2)
+        sum += tmp[it]
+      end
+
+      tmp[:sum] = sum.round(2)
+      result.push(tmp)
+    end
+
+    render json: result
+
+  end
+
 
 
   #指定时间区间充值额度大于某值的用户列表
@@ -134,6 +223,24 @@ class Api::V1::ReportsController < ApplicationController
       end
 
     end
+
+  end
+
+
+  private
+  def sdate_params
+    sdate = params[:sdate]
+    edate = params[:edate]
+    sdate = sdate + '-01' if sdate.length < 10
+    edate = Date.parse(edate + '-01').end_of_month if edate.length < 10
+    @sdate = Date.parse(sdate)
+    if edate
+      @edate = edate.kind_of?(String) ?  Date.parse(edate) : edate
+      if @edate >= Date.today
+        @edate = Date.today - 1.day
+      end
+    end
+    @gids = params[:gids] && params[:gids].split(',') || Game.all_gids(sdate)
 
   end
 

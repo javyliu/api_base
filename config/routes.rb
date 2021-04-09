@@ -13,6 +13,11 @@ Rails.application.routes.draw do
           get :new_player_analyse
           get :income_analyse
           get :income_month
+          get :income_partner
+          get :income_haiwai
+          get :active_analyse
+          get :online_analyse
+          get :max_online_analyse
         end
       end
       resources :sessions

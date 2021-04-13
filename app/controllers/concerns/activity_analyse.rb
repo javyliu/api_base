@@ -177,7 +177,6 @@ module ActivityAnalyse
       tmp[:pcu] = objs.map(&:highonlinenum).sum
       result.push(tmp)
     end
-    Rails.logger.debug result
     render json: result
   end
 
@@ -205,7 +204,6 @@ module ActivityAnalyse
       tmp[:total] = total
       result.push(tmp)
     end
-    Rails.logger.debug result
     render json: result
   end
 
@@ -233,7 +231,6 @@ module ActivityAnalyse
       tmp[:total] = total
       result.push(tmp)
     end
-    Rails.logger.debug result
     render json: result
   end
 

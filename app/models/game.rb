@@ -14,9 +14,18 @@ class Game < MetedataRecord
     by_stop_server_time(sdate).ids
   end
 
+  #def self.name_map
+    #Rails.cache.fetch("name_map", expired_in: 1.month) do
+      #gs = Game.select("gameId,gameName").group_by(&:gameId)
+      #gs.each do |k,v|
+        #gs[k] = v.first
+      #end
+    #end
+  #end
+
   def self.partition_map(group_att: :gameCodes)
     Rails.cache.fetch("game_map_#{group_att}", expired_in: 1.month) do
-      gs = Game.select("gameId,gameName,gameCodes").where(gamestate: 1).each {|item| item.gameCodes = item.gameCodes.scan(/\w+_\w+/)&.map{|it|it.gsub(/\d{2,3}$/,'')}&.uniq}
+      gs = Game.select("gameId,gameName,gameCodes").where("gameCodes != ''").each {|item| item.gameCodes = item.gameCodes.scan(/\w+_\w+/)&.map{|it|it.gsub(/\d{2,3}$/,'')}&.uniq}
       if group_att != :gameCodes
         gs = gs.group_by(&group_att)
         gs.each do |k,v|

@@ -204,7 +204,7 @@ class Api::V1::ReportsController < ApplicationController
       tmp[:sum] = sum.round(2)
       result.push(tmp)
     end
-    render json: {result:result, cols: cols_ary}
+    render json: {data:result, cols: cols_ary}
   end
 
   #######--活跃分析--#######
@@ -238,7 +238,7 @@ class Api::V1::ReportsController < ApplicationController
       result.push(tmp)
     end
 
-    render json: {result:result, cols: cols_ary}
+    render json: {data:result, cols: cols_ary}
   end
 
   #平均在线-全部产品
@@ -266,7 +266,7 @@ class Api::V1::ReportsController < ApplicationController
       result.push(tmp)
     end
 
-    render json: {result:result, cols: cols_ary}
+    render json: {data:result, cols: cols_ary}
 
   end
 
@@ -297,6 +297,28 @@ class Api::V1::ReportsController < ApplicationController
 
     render json: {result:result, cols: cols_ary}
 
+  end
+
+  #季度综合数据-全部产品
+  def quarter_data
+    @gids.delete(0)
+    gmap = Game.partition_map(group_att: :gameId)
+    result = []
+    data1 = PipQuarter.where(gamecode: @gids, quarter: @sdate..@edate).group_by(&:gamecode)
+    cols_ary = {quarter:'季度', gname:'游戏名称', acctotal:'累计新增账户数', money1:'分成前收入', money2:'分成后收入', activenum:'活跃账户', feenum:'付费账户数', arpu: 'ARPU' }
+
+    @gids.each do |gid|
+      items = data1.dig(gid) || []
+      items.each do |item|
+        tmp = item.slice(:quarter,:acctotal, :money1, :money2, :activenum, :feenum) || Hash.new(0)
+        tmp[:gname] = gmap[gid].gameName
+        tmp[:arpu] = (tmp[:activenum] != 0 ? tmp[:money1].to_f / 100.0 / tmp[:activenum] : 0).round(2)
+        tmp[:money1] = (tmp[:money1]/100.0).round(2)
+        tmp[:money2] = (tmp[:money2]/100.0).round(2)
+        result.push(tmp)
+      end
+    end
+    render json: {result:result, cols: cols_ary}
   end
 
 
@@ -401,10 +423,22 @@ class Api::V1::ReportsController < ApplicationController
   def sdate_params
     sdate = params[:sdate]
     edate = params[:edate]
-    sdate = sdate + '-01' if sdate.length < 10
-    edate = Date.parse(edate + '-01').end_of_month if edate.length < 10
+    if sdate.length == 4
+      #只传入年份
+      sdate = "#{sdate}-01-01"
+    elsif sdate.length < 10
+      #传入年和月
+      sdate = sdate + '-01'
+    end
+    if edate.length == 4
+      edate = edate.to_i + 1
+    elsif edate.length < 10
+      edate = Date.parse(edate + '-01').end_of_month
+    end
+
     @sdate = Date.parse(sdate)
-    if edate
+    #只传入年时会被处理为数字
+    if edate && !edate.kind_of?(Integer)
       @edate = edate.kind_of?(String) ?  Date.parse(edate) : edate
       if @edate >= Date.today
         @edate = Date.today - 1.day

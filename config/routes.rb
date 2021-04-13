@@ -18,6 +18,7 @@ Rails.application.routes.draw do
           get :active_analyse
           get :online_analyse
           get :max_online_analyse
+          get :quarter_data
         end
       end
       resources :sessions

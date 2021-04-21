@@ -68,7 +68,7 @@ class Api::V1::ReportsController < ApplicationController
   ##############---充值分析---################
   #收入分布-全部产品
   #分成前/后
-  #/api/v1/reports/new_player_analyse?sdate=2021-01-01&edate=2021-01-07
+  #/api/v1/reports/income_analyse?sdate=2021-01-01&edate=2021-01-07
   #cate 0:分成前, 2:分成后
   def income_analyse
     cate =  (params[:cate] || "")[/\d/]

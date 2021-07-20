@@ -61,3 +61,4 @@ gem "hiredis", "~> 0.6.3"
 gem "fast_excel", "~> 0.4.0"
 
 gem "rdoc", "~> 6.3", :group => :development
+

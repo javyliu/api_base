@@ -10,7 +10,7 @@ class Api::V1::GamesController < ApplicationController
 
   #返回所有游戏列表
   def index
-    data = Hash[Game.pluck(:gameid, :gamename)]
+    data = Game.partition_map
     Rails.logger.info data.inspect
     render json: data
   end

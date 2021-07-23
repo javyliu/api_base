@@ -1,16 +1,19 @@
 class Api::V1::ReportsController < ApplicationController
+  before_action :check_login
+
   before_action :sdate_params, except: [:real_time_data]
   #总体数据
   def index
     gids = @gids
-    data1 = StatIncome3Day.get_income(params[:sdate], params[:edate], gids)
+    Rails.logger.info "-#{@sdate}---#{@edate}-----#{gids}----------"
+    data1 = StatIncome3Day.get_income(@sdate, @edate, gids)
     Rails.logger.info "-----------"
     Rails.logger.info data1
-    data2 = StatUserDay.get_max_and_avg_online(params[:sdate], params[:edate], gids)
+    data2 = StatUserDay.get_max_and_avg_online(@sdate, @edate, gids)
     Rails.logger.info data2
-    data3 = PipAccountDay.get_new_players(params[:sdate], params[:edate], gids)
+    data3 = PipAccountDay.get_new_players(@sdate, @edate, gids)
     Rails.logger.info data3
-    data4 = StatActiveFeeDay.get_fee_active(params[:sdate], params[:edate], gids)
+    data4 = StatActiveFeeDay.get_fee_active(@sdate, @edate, gids)
     Rails.logger.info data4
 
     data = data1.deep_merge(data2).deep_merge(data3).deep_merge(data4)
@@ -421,6 +424,8 @@ class Api::V1::ReportsController < ApplicationController
 
   private
   def sdate_params
+
+    logger.info(params)
     sdate = params[:sdate]
     edate = params[:edate]
     if sdate.length == 4

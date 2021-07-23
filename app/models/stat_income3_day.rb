@@ -13,7 +13,7 @@ class StatIncome3Day < PipstatRecord
   #select statdate, gamecode, sum(amount) as amount, sum(amount2) as amount2 from stat_income3_day where gamecode in ( 124,113) and statdate >= '2020-01-01' and statdate <= '2020-01-02' group by statdate, gamecode
   def self.get_income(sdate,edate,gids, with_date: false)
     #按statdate进行分组进行查询
-    if by_date
+    if with_date
       selects = 'statdate,sum(amount) as amount, sum(amount2) as amount2'
       groups = :statdate
     else
@@ -32,7 +32,7 @@ class StatIncome3Day < PipstatRecord
     end
 
     #仅一个游戏时返回按天分组数据,否则按游戏分组
-    if by_date
+    if with_date
       result.each {|key,vals| result[key] = vals.first.attributes.except('id')}
     else
       result.each{|gid, vals| result[gid] = vals.first.attributes.except('id')}

@@ -1,4 +1,5 @@
 class Api::V1::SessionsController < ApplicationController
+  before_action :check_login, except: [:create]
 
   #创建session
   def create
@@ -11,6 +12,11 @@ class Api::V1::SessionsController < ApplicationController
     render json: {token: encode({user_id: user.id})}
 
   end
+
+  #def destroy
+  #  @user.destroy
+  #  head 204
+  #end
 
 
   private

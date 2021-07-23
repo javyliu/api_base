@@ -8,7 +8,7 @@ class StatActiveFeeDay < PipstatRecord
   #select statdate, gamecode, feenum,  activenum  from stat_active_fee_day where gamecode in ( 124,113) and statdate >= '2020-01-01' and statdate <= '2020-01-02'
   #return: [gamecode, feenum, activenum, feenum/activenum]
   def self.get_fee_active(sdate, edate, gids, with_date: false)
-    if by_date
+    if with_date
       groups = :statdate
       selects = 'statdate, sum(feenum) feenum,  sum(activenum) activenum'
     else
@@ -17,7 +17,7 @@ class StatActiveFeeDay < PipstatRecord
     end
     result = select(selects).by_gameid(gids).by_date(sdate, edate).group(groups).to_a
 
-    unless by_date
+    unless with_date
       return_gids = result.map(&:gamecode)
       old_gids = Array.wrap(gids) - return_gids
       p "------old_gids: #{old_gids}"
@@ -32,8 +32,10 @@ class StatActiveFeeDay < PipstatRecord
       result[key] = item.attributes.except('id')
       result[key]['avg'] = item.activenum == 0 ? 0 : (item.feenum*100.0 / item.activenum).truncate(2)
 
-      unless by_date
-        days_count = (Date.parse(edate) - Date.parse(sdate)).to_i+1
+      unless with_date
+        sdate =  Date.parse(sdate) if sdate.kind_of?(String)
+        edate =  Date.parse(edate) if edate.kind_of?(String)
+        days_count = (edate - sdate).to_i+1
         result[key]['feenum'] /= days_count
         result[key]['activenum'] /= days_count
       end

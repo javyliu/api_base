@@ -3,7 +3,7 @@
 #Date & Time: 2021-01-25 15:45:15
 #Description:
 count=`docker ps -a | grep pq_db|wc -l`
-if [[ 0 == $count ]]; then
+if [[ 0 -eq $count ]]; then
   echo 'create pq_db container and start it'
   docker run -it --name pq_db --restart always -e TZ=PRC -e POSTGRES_USER='javy' -e POSTGRES_PASSWORD='123123' -e ALLOW_IP_RANGE=0.0.0.0/0 -v `pwd`/tmp/pq_data:/var/lib/postgresql/data -p 5432:5432 -d postgres
 else
@@ -13,7 +13,7 @@ fi
 
 
 count=`docker ps -a | grep mysql_1|wc -l`
-if [[ 0 == $count ]]; then
+if [[ 0 -eq $count ]]; then
   echo 'create mysql_1 container and start it'
   docker run -v "$PWD/tmp/mysql_data":/var/lib/mysql  --name mysql_1 -e MYSQL_ROOT_PASSWORD='123123'  -p 3306:3306  -d mysql:5.7.28 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 else

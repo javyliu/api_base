@@ -20,6 +20,7 @@ Rails.application.routes.draw do
           get :online_analyse
           get :max_online_analyse
           get :quarter_data
+          get :income_and_reguser
         end
       end
       resources :sessions

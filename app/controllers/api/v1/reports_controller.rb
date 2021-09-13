@@ -421,6 +421,31 @@ class Api::V1::ReportsController < ApplicationController
 
   end
 
+  #取得昨日游戏收入金额及注册数，用于发送短信
+  #gamecode,amount, reguser
+  #/api/v1/reports/income_and_reguser?sdate=2021-09-08&edate=2021-09-08
+  def income_and_reguser
+    sdate = params[:sdate]
+    edate = params[:edate]
+    @sdate = Date.parse(sdate)
+    @edate = Date.parse(edate)
+    data1 = StatIncome3Day.select("gamecode, sum(amount) amount").by_date(@sdate,@edate).group(:gamecode).group_by(&:gamecode)
+    data2 = StatAccountDay.select("gameswitch, sum(reguser) reguser").by_date(@sdate,@edate).group(:gameswitch).group_by(&:gameswitch)
+
+    result = []
+    gmap = Game.partition_map(group_att: :gameId)
+
+    data1.each do |gid,values|
+      tmp = {}
+      tmp[:gname] = gmap[gid].gameName
+      tmp[:amount] = values.first.amount / 100.0
+      tmp[:reguser] = data2[gid]&.first&.reguser
+      result.push(tmp)
+    end
+
+    render json: result
+  end
+
 
   private
   def sdate_params

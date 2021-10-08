@@ -12,15 +12,16 @@ services:
       - /home/vagrant/web_apps/pearl_new:/usr/share/nginx/pearl_new
     ports:
       - "80:80"
-      - "2221:2221"
-      - "2222:2222"
-      - "2223:2223"
-      - "2224:2224"
-      - "2225:2225"
-      - "2226:2226"
+      - "2221-2230:2221-2230"
+    restart: unless-stopped
+    sysctls:
+      #show by cat /proc/sys/net/core/somaxconn
+      - net.core.somaxconn=4096
+
 
   pq_db:
-    image: postgres
+    container_name: pq_db
+    image: postgres:latest
     volumes:
       - ./tmp/pq_data:/var/lib/postgresql/data
     environment:
@@ -30,8 +31,12 @@ services:
       - ALLOW_IP_RANGE=0.0.0.0/0
     ports:
       - "5432:5432"
+    restart: unless-stopped
+    sysctls:
+      - net.core.somaxconn=4096
 
   mysql:
+    container_name: mysql
     image: mysql:5.7.28
     volumes:
       - ./tmp/mysql_data:/var/lib/mysql
@@ -46,10 +51,14 @@ services:
       - TZ=Asia/Shanghai
     ports:
       - "3306:3306"
+    restart: unless-stopped
+    sysctls:
+      - net.core.somaxconn=4096
 
   redis:
+    container_name: redis
     image: redis:5.0.7
-    command: redis-server --requirepass 123123 --appendonly yes
+    command: bash -c "echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf && redis-server --requirepass 123123 --appendonly yes"
     volumes:
       - db_redis:/data
         #- ./conf/redis.conf:/etc/conf/redis.conf
@@ -58,6 +67,9 @@ services:
     environment:
       #this is not usage
       - PASSWORD=123123
+    restart: unless-stopped
+    sysctls:
+      - net.core.somaxconn=4096
 
 volumes:
   db_redis:

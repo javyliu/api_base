@@ -7,6 +7,7 @@ ARG RUBY_PACKAGES="tzdata"
 
 ENV RAILS_ENV=production
 ENV NODE_ENV=production
+ENV RAILS_LOG_TO_STDOUT=true
 ENV BUNDLE_APP_CONFIG="$RAILS_ROOT/.bundle"
 
 

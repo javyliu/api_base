@@ -1,5 +1,5 @@
 class Api::V1::ReportsController < ApplicationController
-  before_action :check_login
+  before_action :check_login, except: [:accounts_gt_money]
 
   before_action :sdate_params, except: [:real_time_data]
   #总体数据
